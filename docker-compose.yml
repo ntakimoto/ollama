@@ -1,0 +1,25 @@
+version: "3"
+services:
+  ollama:
+    image: ollama/ollama
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_data:/root/.ollama
+    command: serve
+    cpus: 4
+
+  webchat:
+    build: .
+    ports:
+      - "8501:8501"
+    volumes:
+      - ./chroma_db:/app/chroma_db
+    depends_on:
+      - ollama
+    environment:
+      - OLLAMA_API_BASE=http://ollama:11434
+    cpus: 2
+
+volumes:
+  ollama_data:
