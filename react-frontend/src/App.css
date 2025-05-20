@@ -1,0 +1,152 @@
+.container {
+  display: flex;
+  height: 100vh;
+}
+.left, .right {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.left {
+  border-right: 1px solid #333;
+  background: #18191a;
+}
+.right {
+  background: #18191a;
+  padding: 1rem;
+}
+.chat-history {
+  flex: 1;
+  overflow-y: auto;
+  padding: 1rem;
+  background: #222; /* 背景を少し暗く */
+  color: #fff;
+  border-bottom: 1px solid #333;
+  display: flex; /* ★ 追加: メッセージを縦に並べるため */
+  flex-direction: column; /* ★ 追加 */
+  /* ★ スクロールバーのスタイル (Firefox) */
+  scrollbar-width: thin;
+  scrollbar-color: #555 #222; /* サムの色 トラックの色 */
+}
+
+/* ★ スクロールバーのスタイル (Webkit系ブラウザ: Chrome, Edge, Safari) */
+.chat-history::-webkit-scrollbar {
+  width: 8px; /* スクロールバーの幅 */
+}
+
+.chat-history::-webkit-scrollbar-track {
+  background: #222; /* トラックの背景色 (chat-historyの背景に合わせる) */
+  border-radius: 10px;
+}
+
+.chat-history::-webkit-scrollbar-thumb {
+  background-color: #555; /* サム（つまみ）の背景色 */
+  border-radius: 10px; /* サムの角丸 */
+  border: 2px solid #222; /* サムの境界線 (トラック背景色と同じにしてスペースを作る) */
+}
+
+.chat-history::-webkit-scrollbar-thumb:hover {
+  background-color: #777; /* サムのホバー時の背景色 */
+}
+
+/* ★ 追加: メッセージコンテナのスタイル */
+.message-container {
+  display: flex;
+  margin-bottom: 0.75rem;
+  align-items: flex-end; /* アイコンと吹き出しを下に揃える */
+}
+
+.message-container.user {
+  flex-direction: row-reverse; /* ユーザーはアイコンを右に */
+}
+
+.message-container.assistant {
+  flex-direction: row; /* アシスタントはアイコンを左に */
+}
+
+/* ★ 追加: アバター（アイコン）のスタイル */
+.avatar {
+  font-size: 1.5rem; /* アイコンサイズ調整 */
+  margin: 0 0.5rem; /* 吹き出しとの間隔 */
+}
+
+.msg {
+  padding: 0.75rem 1rem; /* パディング調整 */
+  border-radius: 15px; /* 角丸を大きく */
+  /* margin-bottom は message-container に移動 */
+  max-width: 70%; /* 最大幅を設定 */
+  position: relative; /* しっぽの位置決めの基準 */
+  word-wrap: break-word; /* 長い単語の折り返し */
+  /* align-self は message-container の flex-direction で制御 */
+  /* margin-left/right は avatar との兼ね合いで調整 */
+}
+
+.message-container.user .msg { /* ★ 変更: セレクタを具体的に */
+  background: #007bff; /* ユーザーの吹き出し色 (例: 青) */
+  color: white;
+  border-bottom-right-radius: 5px; /* 右下の角を少し鋭く */
+  margin-right: 0; /* ★ 変更: avatarとの間隔はavatar側で調整 */
+}
+
+.message-container.user .msg::after { /* ★ 変更: セレクタを具体的に */
+  content: '';
+  position: absolute;
+  bottom: 0;
+  right: -8px; /* しっぽの位置 */
+  width: 0;
+  height: 0;
+  border-style: solid;
+  border-width: 10px 0 0 15px; /* しっぽの形 (三角形) */
+  border-color: transparent transparent transparent #007bff; /* しっぽの色 */
+  transform: translateY(-1px); /* 微調整 */
+}
+
+.message-container.assistant .msg { /* ★ 変更: セレクタを具体的に */
+  background: #444950; /* アシスタントの吹き出し色 (例: やや暗いグレー) */
+  color: white;
+  border-bottom-left-radius: 5px; /* 左下の角を少し鋭く */
+  margin-left: 0; /* ★ 変更: avatarとの間隔はavatar側で調整 */
+}
+
+.message-container.assistant .msg::before { /* ★ 変更: セレクタを具体的に */
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: -8px; /* しっぽの位置 */
+  width: 0;
+  height: 0;
+  border-style: solid;
+  border-width: 0 0 10px 15px; /* しっぽの形 (三角形) */
+  border-color: transparent transparent #444950 transparent; /* しっぽの色 */
+  transform: translateY(-1px); /* 微調整 */
+}
+
+.chat-input {
+  display: flex;
+  border-top: 1px solid #333;
+  background: #222;
+  padding: 0.5rem;
+}
+.chat-input input {
+  flex: 1;
+  padding: 0.5rem;
+  border: none;
+  background: #333;
+  color: #fff;
+}
+.chat-input button {
+  margin-left: 0.5rem;
+  padding: 0.5rem 1rem;
+  background: #444;
+  color: #fff;
+  border: none;
+  cursor: pointer;
+}
+.youtube-panel, .transcript-panel {
+  margin-bottom: 1rem;
+  background: #222;
+  color: #fff;
+  padding: 1rem;
+  border-radius: 8px;
+}

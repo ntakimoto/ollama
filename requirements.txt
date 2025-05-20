@@ -1,6 +1,10 @@
-streamlit
 torch
 sentence-transformers
 chromadb
 smolagents
 litellm
+fastapi
+uvicorn
+pydantic
+google-generativeai
+python-dotenv

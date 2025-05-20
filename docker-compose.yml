@@ -9,10 +9,11 @@ services:
     command: serve
     cpus: 4
 
-  webchat:
+  backend:
     build: .
+    container_name: ollama-backend
     ports:
-      - "8501:8501"
+      - "8001:8001"
     volumes:
       - ./chroma_db:/app/chroma_db
     depends_on:
@@ -20,6 +21,19 @@ services:
     environment:
       - OLLAMA_API_BASE=http://ollama:11434
     cpus: 2
+
+  frontend:
+    build:
+      context: ./react-frontend
+      dockerfile: Dockerfile
+    container_name: ollama-frontend
+    ports:
+      - "3000:3000"
+    working_dir: /app
+    environment:
+      - CHOKIDAR_USEPOLLING=true
+    depends_on:
+      - backend
 
 volumes:
   ollama_data:
