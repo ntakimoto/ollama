@@ -49,7 +49,8 @@ def main():
     if "messages" not in st.session_state:
         st.session_state["messages"] = load_chat_history()
 
-    for msg in st.session_state["messages"]:
+    # Display messages in reverse order (newest at the bottom)
+    for msg in reversed(st.session_state["messages"]):
         if isinstance(msg.get("content"), list) and len(msg["content"]) > 0 and isinstance(msg["content"][0], dict) and "text" in msg["content"][0]:
             st.chat_message(msg["role"]).write(msg["content"][0]["text"])
         elif isinstance(msg.get("content"), str):
@@ -72,7 +73,7 @@ def main():
 
         with st.spinner("AIが考え中..."):
             response = model([user_msg_for_llm])
-        ai_text = response.content.replace("書籍の抜粋から理解すると、", "")
+        ai_text = response.content.replace("書籍の抜粋から理解すると、", "").replace("【回答】", "")
         ai_msg = {"role": "assistant", "content": [{"type": "text", "text": ai_text}]}
         st.session_state["messages"].append(ai_msg)
         save_chat_history(st.session_state["messages"])
