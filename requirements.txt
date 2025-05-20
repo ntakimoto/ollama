@@ -1,10 +1,11 @@
-torch
-sentence-transformers
-chromadb
-smolagents
-litellm
 fastapi
 uvicorn
 pydantic
 google-generativeai
 python-dotenv
+youtube-transcript-api
+sentence-transformers
+chromadb
+smolagents
+torch
+pytube

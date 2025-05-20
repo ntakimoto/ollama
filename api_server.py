@@ -6,6 +6,8 @@ from typing import List, Dict
 import traceback # ★ 追加
 from pydantic import BaseModel
 from dotenv import load_dotenv # Add this import
+from youtube_transcript_api import YouTubeTranscriptApi, TranscriptsDisabled, NoTranscriptFound # Add this import
+from pytube import YouTube # Add this import
 
 CHAT_HISTORY_FILE = "chat_history.json"
 
@@ -44,6 +46,40 @@ def save_chat_history(messages: List[Dict]):
     except Exception as e:
         print(f"!!! EXCEPTION in save_chat_history: {e}") # ★ 追加
         traceback.print_exc() # ★ 追加
+
+@app.delete("/api/messages/{message_index}")
+async def delete_message(message_index: int):
+    print(f"--- delete_message called for index: {message_index} ---")
+    messages = load_chat_history()
+    print(f"--- Current chat history length: {len(messages)} ---")
+    # Log first few messages for brevity, if history is long
+    if messages:
+        print(f"--- Current chat history (first 3 messages if available): {messages[:3]} ---")
+    else:
+        print("--- Current chat history is empty. ---")
+
+    # Validate index
+    if not (0 <= message_index < len(messages)):
+        print(f"!!! Index {message_index} is out of bounds for messages list of length {len(messages)}.")
+        raise HTTPException(status_code=404, detail="Message index out of bounds.")
+    
+    # Validate it's a user message
+    if messages[message_index]["role"] != "user":
+        print(f"!!! Message at index {message_index} is not a user message. Role: {messages[message_index]['role']}")
+        raise HTTPException(status_code=400, detail="Specified index does not refer to a user message.")
+
+    # Determine if there's a subsequent assistant message to remove as well
+    if message_index + 1 < len(messages) and messages[message_index + 1]["role"] == "assistant":
+        del messages[message_index : message_index + 2] # Delete user message and AI response
+        print(f"--- Deleted user message at index {message_index} and subsequent AI message ---")
+    else:
+        del messages[message_index] # Delete only the user message
+        print(f"--- Deleted user message at index {message_index} (no subsequent AI message found) ---")
+    
+    save_chat_history(messages)
+    print(f"--- Chat history saved. Current messages: {messages} ---")
+    # Return the updated chat history so the frontend can sync
+    return {"message": "Messages deleted successfully", "chat_history": messages}
 
 class MessageRequest(BaseModel):
     message: str
@@ -138,9 +174,11 @@ async def post_message_gemini(payload: MessageRequest):
             related_texts = "\n".join(results["documents"][0])
             system_prompt = (
                 "あなたは親切なAIアシスタントです。\n"
-                "以下の書籍からの抜粋を参考に、ユーザーの質問に日本語で答えてください。\n"
-                "抜粋に直接的な答えがない場合でも、関連する情報を提供し、自然な会話を心がけてください。\n\n"
-                f"【書籍抜粋】\n{related_texts}\n\n"
+                "ユーザーの質問に対して、以下の【提供情報】のみを根拠として、日本語で回答してください。\n"
+                "【提供情報】に記載されていない内容や、情報源（例：書籍、記事など）の構造や背景に関する憶測（例えば「書籍の冒頭には」や「著者の意図は」など）を回答に含めないでください。\n"
+                "あなたの役割は、提供された情報を正確にユーザーに伝えることです。\n"
+                "回答を生成する際には、「【提供情報】」、「提供された情報からは、」、「書籍の記述からは、」といった定型的な前置きやラベルを回答に含めないでください。\n\n"
+                f"【提供情報】\n{related_texts}\n\n" # Changed label from 書籍抜粋
                 f"【ユーザーの質問】\n{message}"
             )
             print("--- RAG: Found related content ---")
@@ -169,15 +207,78 @@ async def post_message_gemini(payload: MessageRequest):
         ai_text = response.text
         
         # フロントエンドへのレスポンス形式を統一
-        ai_msg_content = {"role": "assistant", "content": [{"type": "text", "text": ai_text}]}
+        # ... (ai_msg_content assignment - keep as is or remove if only chat_history matters here)
         
         # チャット履歴への保存用 (videoIdやtranscriptは含めない)
-        messages.append({"role": "assistant", "content": [{"type": "text", "text": ai_text}]})
+        messages.append({"role": "assistant", "content": ai_text }) # Ensure content is just the text for history
         print("Saving chat history...")
         save_chat_history(messages)
         
         print("--- post_message_gemini completed successfully ---")
-        return ai_msg_content
+
+        current_video_id = ""
+        actual_transcript_data = [] # ★ 変更: デフォルトを空リストに
+        video_title = "" # ★ 追加: 動画タイトル用変数
+
+        if results["documents"] and results["documents"][0]:
+            # RAG was successful
+            current_video_id = "iRJvKaCGPl0" # ★ 変更: 新しいテスト動画ID
+            try:
+                yt = YouTube(f"https://www.youtube.com/watch?v={current_video_id}")
+                video_title = yt.title
+                print(f"--- Fetched video title: {video_title} ---")
+            except Exception as e:
+                print(f"--- Error fetching video title for {current_video_id}: {type(e).__name__} - {e} ---")
+                traceback.print_exc() # ★ 追加: 詳細なトレースバックをログに出力
+                video_title = "動画タイトルを取得できませんでした"
+
+            try:
+                # Attempt to fetch Japanese transcript first, then English as fallback
+                transcript_list = YouTubeTranscriptApi.get_transcript(current_video_id, languages=['ja', 'en'])
+                actual_transcript_data = transcript_list 
+                # Ensure this print statement is detailed
+                print(f"--- Transcript fetched for {current_video_id}. Type: {type(actual_transcript_data)}, Lines: {len(actual_transcript_data) if isinstance(actual_transcript_data, list) else 'N/A'} ---")
+            except TranscriptsDisabled:
+                print(f"--- Transcripts are disabled for video: {current_video_id} ---")
+                actual_transcript_data = [] # エラー時は空リスト
+            except NoTranscriptFound:
+                print(f"--- No Japanese or English transcript found for video: {current_video_id} ---")
+                actual_transcript_data = [] # エラー時は空リスト
+            except Exception as e: # More general exception catch
+                print(f"--- Error fetching transcript for {current_video_id}: {type(e).__name__} - {e} ---")
+                traceback.print_exc() # Log the stack trace
+                actual_transcript_data = [] # エラー時は空リスト
+            
+            # Add detailed log before returning
+            data_to_return_transcript = actual_transcript_data if actual_transcript_data is not None else []
+            print(f"--- Preparing to return for RAG success. Transcript Type: {type(data_to_return_transcript)}, Lines: {len(data_to_return_transcript) if isinstance(data_to_return_transcript, list) else 'N/A'}, Content (first 70 chars): {str(data_to_return_transcript)[:70]} ---")
+            
+            return {
+                "role": "assistant",
+                "content": ai_text,
+                "videoId": current_video_id,
+                "transcript": data_to_return_transcript, # Use the potentially defaulted variable
+                "videoTitle": video_title # ★ 追加
+            }
+        else:
+            # RAG failed, Gemini direct answer
+            current_video_id = "dQw4w9WgXcQ" # Fallback dummy video ID
+            try:
+                yt = YouTube(f"https://www.youtube.com/watch?v={current_video_id}")
+                video_title = yt.title
+                print(f"--- Fetched video title: {video_title} ---")
+            except Exception as e:
+                print(f"--- Error fetching video title for {current_video_id}: {type(e).__name__} - {e} ---")
+                traceback.print_exc() # ★ 追加: 詳細なトレースバックをログに出力
+                video_title = "動画タイトルを取得できませんでした"
+            actual_transcript_data = [] # ★ 変更: RAG失敗時も空リスト
+            return {
+                "role": "assistant",
+                "content": ai_text,
+                "videoId": current_video_id,
+                "transcript": actual_transcript_data, # ★ 変更: 空リストを返す
+                "videoTitle": video_title # ★ 追加
+            }
 
     except HTTPException as http_exc:
         print(f"--- Raising HTTPException: {http_exc.status_code} {http_exc.detail}")

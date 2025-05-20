@@ -55,6 +55,7 @@
   display: flex;
   margin-bottom: 0.75rem;
   align-items: flex-end; /* アイコンと吹き出しを下に揃える */
+  position: relative; /* For positioning the delete button */
 }
 
 .message-container.user {
@@ -150,3 +151,79 @@
   padding: 1rem;
   border-radius: 8px;
 }
+
+.transcript-panel {
+  background-color: #f0f0f0;
+  padding: 15px;
+  border-radius: 8px;
+  height: calc(50% - 10px); /* 高さを右側パネルの半分弱に設定 */
+  display: flex;
+  flex-direction: column; /* 子要素を縦に並べる */
+}
+
+.transcript-panel h3 {
+  margin-top: 0;
+  margin-bottom: 10px;
+  font-size: 1.1em;
+  color: #333;
+}
+
+.transcript-list {
+  list-style-type: none; /* リストマーカーを非表示 */
+  padding: 0;
+  margin: 0;
+  flex-grow: 1; /* 残りのスペースを埋める */
+  overflow-y: auto; /* 縦方向のスクロールを有効にする */
+  background-color: #fff; /* 背景色を白に */
+  border: 1px solid #ddd; /* 境界線を追加 */
+  border-radius: 4px; /* 角を少し丸く */
+}
+
+.transcript-list li {
+  padding: 8px 10px; /* 各リストアイテムのパディング */
+  border-bottom: 1px solid #eee; /* アイテム間の区切り線 */
+  color: #000000; /* ★ 追加: 文字色を黒に設定 */
+}
+
+.transcript-list li:last-child {
+  border-bottom: none; /* 最後のアイテムの区切り線はなし */
+}
+
+.delete-button {
+  background: none;
+  border: none;
+  color: #999;
+  cursor: pointer;
+  font-size: 0.8em;
+  padding: 0 5px;
+  /* Position the delete button appropriately for user messages */
+  /* Since user messages are flex-direction: row-reverse, 
+     this will appear to the left of the message bubble */
+  margin-left: 5px; /* For user messages (flex-reversed) */
+  margin-right: 0; 
+  align-self: center; /* Vertically center with the avatar/bubble */
+}
+
+.message-container.assistant .delete-button {
+  /* Hide delete button for assistant messages if it were ever rendered there */
+  display: none; 
+}
+
+.delete-button:hover {
+  color: #ff0000;
+}
+
+.transcript-line {
+  padding: 4px 8px;
+  margin-bottom: 2px;
+  border-radius: 4px;
+  font-size: 0.9em;
+  /* transition: background-color 0.3s ease; */ /* Commented out or remove if not liking the transition */
+  white-space: pre-line; /* ★ 追加: 改行を適切に処理 */
+}
+
+.transcript-line.active {
+  background-color: #4a4a4a; /* Or a slightly different shade than regular hover */
+  color: #ffffff;
+  font-weight: bold;
+} /* ★ 追加: 閉じ括弧を追加 */
