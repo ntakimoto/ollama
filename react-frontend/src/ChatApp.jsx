@@ -121,9 +121,16 @@ function TranscriptPanel({ text, currentTime }) { // ★ 変更: currentTime pro
     }
   }, [currentTime]); // currentTime が変わるたびにスクロール
 
+  // 字幕全文を連結して表示
+  const allTranscriptText = transcriptLines.map(line => line.text).join(' ');
+
   return (
     <div className="transcript-panel">
-      <h3>対象YouTube動画の音声データをテキスト表示</h3>
+      {allTranscriptText && (
+        <div className="transcript-full-text" style={{ marginBottom: '1em', color: '#333', background: '#f9f9f9', padding: '8px', borderRadius: '4px', fontSize: '0.95em' }}>
+          {allTranscriptText}
+        </div>
+      )}
       {transcriptLines.length > 0 ? (
         <ul className="transcript-list">
           {transcriptLines.map((line, index) => {
@@ -175,6 +182,22 @@ export default function ChatApp() {
     }, 500);
     return () => clearInterval(interval);
   }, [isThinking]);
+
+  // ★ 初期表示時に字幕全文を取得
+  useEffect(() => {
+    async function fetchInitialTranscript() {
+      try {
+        const res = await fetch(`/api/messages/transcript/${TEST_VIDEO_ID}`);
+        if (res.ok) {
+          const data = await res.json();
+          setTranscript(Array.isArray(data.transcript) ? data.transcript : []);
+        }
+      } catch (e) {
+        // エラー時は何もしない
+      }
+    }
+    fetchInitialTranscript();
+  }, []);
 
   // ★ 追加: サイドバー開閉ハンドラ
   const toggleSidebar = () => {

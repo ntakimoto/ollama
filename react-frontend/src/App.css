@@ -398,3 +398,15 @@
   color: #ffffff;
   font-weight: bold;
 }
+
+.transcript-full-text {
+  margin-bottom: 1em;
+  color: #333;
+  background: #f9f9f9;
+  padding: 8px;
+  border-radius: 4px;
+  font-size: 0.95em;
+  max-height: 120px;
+  overflow-y: auto;
+  line-height: 1.7;
+}
