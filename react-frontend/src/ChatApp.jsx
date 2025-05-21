@@ -231,17 +231,24 @@ export default function ChatApp() {
   // <YouTubePanel videoId={videoId} videoTitle={videoTitle} onPlayerStateChange={onPlayerStateChange} />
 
   return (
-    <div className="container">
-      <div className="left">
-        <ChatHistory messages={messages} onDeleteMessage={handleDeleteMessage} />
-        <ChatInput value={input} onChange={setInput} onSend={handleSend} />
+    <> {/* ★ Fragment を使用してヘッダーとメインコンテンツをラップ */}
+      <header className="app-header">
+        <h1>RAG Chat Application</h1>
+      </header>
+      <div className="main-content"> {/* ★ メインコンテンツをラップするdivを追加 */}
+        <div className="container">
+          <div className="left">
+            <ChatHistory messages={messages} onDeleteMessage={handleDeleteMessage} />
+            <ChatInput value={input} onChange={setInput} onSend={handleSend} />
+          </div>
+          <div className="right">
+            {/* YouTubePanelにonReadyとonStateChangeハンドラを渡す (react-youtube を使う場合) */}
+            {/* ここでは標準のiframeなので、postMessage API等を使うか、react-youtubeのようなライブラリ導入を検討 */} 
+            <YouTubePanel videoId={videoId} videoTitle={videoTitle} /> 
+            <TranscriptPanel text={transcript} currentTime={currentVideoTime} />
+          </div>
+        </div>
       </div>
-      <div className="right">
-        {/* YouTubePanelにonReadyとonStateChangeハンドラを渡す (react-youtube を使う場合) */}
-        {/* ここでは標準のiframeなので、postMessage API等を使うか、react-youtubeのようなライブラリ導入を検討 */} 
-        <YouTubePanel videoId={videoId} videoTitle={videoTitle} /> 
-        <TranscriptPanel text={transcript} currentTime={currentVideoTime} />
-      </div>
-    </div>
+    </>
   );
 }
