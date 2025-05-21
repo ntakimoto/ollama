@@ -9,3 +9,4 @@ chromadb
 smolagents
 torch
 pytube
+Pillow

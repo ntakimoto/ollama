@@ -124,9 +124,14 @@
   font-size: 0.9em;
   color: #eee;
   margin: 0 0 4px 0;
-  white-space: nowrap;
+  white-space: normal; /* 1行表示をやめて複数行OKに */
   overflow: hidden;
-  text-overflow: ellipsis; /* 長いタイトルを省略表示 */
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 2; /* 2行まで表示 */
+  -webkit-box-orient: vertical;
+  line-clamp: 2; /* 標準プロパティも追加 */
+  box-orient: vertical;
 }
 
 .video-id {
@@ -451,12 +456,16 @@
 }
 
 .transcript-panel {
-  background-color: #f0f0f0;
+  background-color: #f0f0f0; /* Light grey background */
   padding: 15px;
   border-radius: 8px;
-  height: calc(50% - 10px); /* 高さを右側パネルの半分弱に設定 */
-  display: flex;
-  flex-direction: column; /* 子要素を縦に並べる */
+  height: calc(100% - 30px); /* Adjust height considering padding */
+  overflow-y: auto; /* Allow scrolling for transcript */
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1); /* Subtle shadow */
+  color: #333; /* Darker text for readability */
+  display: flex; /* ADDED */
+  flex-direction: column; /* ADDED */
+  color: #fff; /* Change text color to white */
 }
 
 /* ★ ADDED: Styles for transcript loading and error states */
@@ -488,19 +497,44 @@
   margin: 0;
   flex-grow: 1; /* 残りのスペースを埋める */
   overflow-y: auto; /* 縦方向のスクロールを有効にする */
-  background-color: #fff; /* 背景色を白に */
-  border: 1px solid #ddd; /* 境界線を追加 */
+  background-color: #333; /* 背景色を白に */
+  border: 1px solid #333; /* 境界線を追加 */
   border-radius: 4px; /* 角を少し丸く */
+  flex-grow: 1; /* ADDED */
+  min-height: 0; /* ADDED - Important for scrollability in flex children */
+  color: #fff; /* Ensure list items inherit white text color */
+  /* Ensure scrolling behavior */
+  scrollbar-width: thin; /* Match chat scrolling style */
+  scrollbar-color: #555 #222; /* Match chat scrollbar colors */
 }
 
 .transcript-list li {
   padding: 8px 10px; /* 各リストアイテムのパディング */
   border-bottom: 1px solid #eee; /* アイテム間の区切り線 */
-  color: #000000; /* ★ 追加: 文字色を黒に設定 */
+  color: inherit; /* Inherit text color from parent */
 }
 
 .transcript-list li:last-child {
   border-bottom: none; /* 最後のアイテムの区切り線はなし */
+}
+
+.transcript-list::-webkit-scrollbar {
+  width: 8px; /* Match chat scrollbar width */
+}
+
+.transcript-list::-webkit-scrollbar-track {
+  background: #282c34; /* Match chat scrollbar track color */
+  border-radius: 10px;
+}
+
+.transcript-list::-webkit-scrollbar-thumb {
+  background-color: #555; /* Match chat scrollbar thumb color */
+  border-radius: 10px;
+  border: 2px solid #222; /* Match chat scrollbar thumb border */
+}
+
+.transcript-list::-webkit-scrollbar-thumb:hover {
+  background-color: #777; /* Match chat scrollbar thumb hover color */
 }
 
 .delete-button {
@@ -540,6 +574,18 @@
   background-color: #4a4a4a; /* Or a slightly different shade than regular hover */
   color: #ffffff;
   font-weight: bold;
+}
+
+.transcript-full-text {
+  margin-bottom: 1em;
+  padding: 10px; /* Added padding */
+  background-color: #ffffff; /* White background for full text */
+  border-radius: 4px; /* Rounded corners */
+  font-size: 0.9em; /* Slightly smaller font */
+  line-height: 1.5; /* Improved line spacing */
+  max-height: 150px; /* Limit height and make scrollable if needed */
+  overflow-y: auto; /* Scroll if content exceeds max-height */
+  flex-shrink: 0; /* ADDED */
 }
 
 .transcript-full-text {
@@ -676,4 +722,18 @@
 
 .dialog-close-button:hover {
   color: #fff; /* White on hover */
+}
+
+/* 中央ラインのスタイル */
+.column-divider {
+  width: 8px;
+  cursor: col-resize;
+  background-color: #282c34; /* 背景色に合わせる */
+  z-index: 2;
+  position: relative;
+}
+
+/* ホバー時のスタイル */
+.column-divider:hover {
+  background-color: #3a3f47; /* 背景色に合わせたホバー色 */
 }

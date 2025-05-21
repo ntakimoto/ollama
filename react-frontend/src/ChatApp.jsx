@@ -1,5 +1,7 @@
 import React, { useState, useEffect, useRef, useMemo } from "react"; // ★ MODIFIED: Added useMemo
 import ReactMarkdown from 'react-markdown'; // ★ 追加
+import remarkMath from 'remark-math';
+import rehypeMathjax from 'rehype-mathjax';
 import MenuIcon from '@mui/icons-material/Menu';
 import AccountCircleIcon from '@mui/icons-material/AccountCircle';
 import UploadFileIcon from '@mui/icons-material/UploadFile';
@@ -110,9 +112,6 @@ function ChatHistory({ messages = [], onDeleteMessage, isThinking, thinkingDots 
               potentialJson = jsonBlockMatch[1].trim();
               console.log("Extracted from ```json block:", potentialJson);
             } else {
-              // No ```json block found, or it's malformed.
-              // Assume the whole contentStr might be JSON, or it's plain Markdown.
-              // We'll try to parse it, and if it fails, it will be rendered as Markdown.
               potentialJson = contentStr.trim();
               console.log("No ```json block detected, or regex failed. Will attempt to parse trimmed original content:", potentialJson);
             }
@@ -121,23 +120,20 @@ function ChatHistory({ messages = [], onDeleteMessage, isThinking, thinkingDots 
               try {
                 const parsed = JSON.parse(potentialJson);
                 console.log("Parsed content:", parsed); 
-                if (parsed && parsed.is_table && parsed.type === 'table_data' && parsed.data && parsed.data.headers && parsed.data.rows) {
+                // NEW LOGIC: Render as table if 'data.headers' and 'data.rows' exist and are arrays.
+                // This makes the data structure itself the primary condition.
+                if (parsed && parsed.data && Array.isArray(parsed.data.headers) && Array.isArray(parsed.data.rows)) {
                   contentToRender = <JsonTable data={parsed.data} />;
                   isJsonTable = true;
-                  console.log("Rendered as JSON table.");
+                  console.log("Rendered as JSON table based on presence of parsed.data.headers and parsed.data.rows arrays.");
                 } else {
-                  console.log("Parsed successfully, but not recognized as a valid table structure. Parsed object:", parsed);
-                  if (!parsed) {
-                    console.log("Reason: Parsed object is null or undefined.");
-                  } else {
-                    if (parsed.is_table !== true) console.log("Reason: parsed.is_table is not true. Value:", parsed.is_table);
-                    if (parsed.type !== 'table_data') console.log("Reason: parsed.type is not 'table_data'. Value:", parsed.type);
-                    if (!parsed.data) {
-                      console.log("Reason: parsed.data is missing. Value:", parsed.data);
-                    } else {
-                      if (!parsed.data.headers) console.log("Reason: parsed.data.headers is missing. Value:", parsed.data.headers);
-                      if (!parsed.data.rows) console.log("Reason: parsed.data.rows is missing. Value:", parsed.data.rows);
-                    }
+                  console.log("Parsed JSON does not meet structural requirements for table (expected parsed.data.headers and parsed.data.rows as arrays). Will render as Markdown. Parsed object:", parsed);
+                  // Detailed logging for why it's not a table under the new criteria:
+                  if (!parsed) console.log("Reason: Parsed object is null or undefined.");
+                  else if (!parsed.data) console.log("Reason: parsed.data is missing.");
+                  else {
+                    if (!Array.isArray(parsed.data.headers)) console.log("Reason: parsed.data.headers is not an array or is missing. Value:", parsed.data.headers);
+                    if (!Array.isArray(parsed.data.rows)) console.log("Reason: parsed.data.rows is not an array or is missing. Value:", parsed.data.rows);
                   }
                 }
               } catch (e) {
@@ -153,7 +149,7 @@ function ChatHistory({ messages = [], onDeleteMessage, isThinking, thinkingDots 
           if (msg.role === "assistant" && contentStr) { // Only log if it was an assistant message we tried to parse
             console.log("Rendered as Markdown.");
           }
-          contentToRender = <ReactMarkdown>{Array.isArray(msg.content) ? msg.content[0]?.text : msg.content}</ReactMarkdown>;
+          contentToRender = <ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeMathjax]}>{Array.isArray(msg.content) ? msg.content[0]?.text : msg.content}</ReactMarkdown>;
         }
         return (
           <div key={idx} className={`message-container ${msg.role}` + (showRating ? ' with-rating' : '')}> {/* ★ 変更: message-container を追加し、roleクラスを付与 */}
@@ -215,17 +211,18 @@ function ChatInput({ value, onChange, onSend }) {
   );
 }
 
-function YouTubePanel({ videoId }) { // ★ videoTitle prop を削除
+function YouTubePanel({ videoId }) {
   if (!videoId) {
     return <div className="youtube-panel-placeholder">YouTube動画プレーヤー</div>;
   }
   const videoSrc = `https://www.youtube.com/embed/${videoId}?autoplay=1&modestbranding=1&rel=0`;
   return (
-    <div className="youtube-panel">
+    <div className="youtube-panel" style={{ flex: 1, minWidth: 0, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
       <iframe
         width="100%"
-        height="405" // ★ 変更: 高さを360から405に
-        src={videoSrc} // ★ 変更: videoSrcを使用
+        height="100%"
+        style={{ flex: 1, minWidth: 0, minHeight: 0, border: 0, background: '#282c34' }}
+        src={videoSrc}
         title="YouTube video"
         frameBorder="0"
         allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
@@ -235,23 +232,24 @@ function YouTubePanel({ videoId }) { // ★ videoTitle prop を削除
   );
 }
 
-// ★ 変更: currentTime prop を追加
 function TranscriptPanel({ text, currentTime, isLoading, error }) { // ★ MODIFIED: Added isLoading, error props
-  const transcriptLines = useMemo(() => (Array.isArray(text) ? text : []), [text]); // ★ MODIFIED: Wrapped in useMemo
-  const currentLineRef = useRef(null);
+  const transcriptLines = useMemo(() => (Array.isArray(text) ? text : []), [text]);
+  // const currentLineRef = useRef(null); // REMOVED: This ref was for the old single-block structure
 
-  useEffect(() => {
-    if (currentLineRef.current) {
-      currentLineRef.current.scrollIntoView({
-        behavior: "smooth",
-        block: "center",
-      });
-    }
-  }, [currentTime, transcriptLines]); // ★ MODIFIED: Added transcriptLines to dependency array
+  // REMOVED: This useEffect was for scrolling the old single-block transcript.
+  // The new line-by-line display would require a different approach for highlighting/scrolling the current line.
+  // useEffect(() => {
+  //   if (currentLineRef.current) {
+  //     currentLineRef.current.scrollIntoView({
+  //       behavior: "smooth",
+  //       block: "center",
+  //     });
+  //   }
+  // }, [currentTime, transcriptLines]);
 
   if (isLoading) {
     return (
-      <div className="transcript-panel">
+      <div className="transcript-panel" style={{ flexGrow: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', borderTop: '1px solid #222' }}>
         <div className="transcript-loading">Loading transcript...</div>
       </div>
     );
@@ -259,38 +257,49 @@ function TranscriptPanel({ text, currentTime, isLoading, error }) { // ★ MODIF
 
   if (error) {
     return (
-      <div className="transcript-panel">
+      <div className="transcript-panel" style={{ flexGrow: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'red', borderTop: '1px solid #222' }}>
         <div className="transcript-error">{error}</div>
       </div>
     );
   }
 
-  const allTranscriptText = transcriptLines.map(line => line.text).join(' ');
+  // REMOVED: const allTranscriptText = transcriptLines.map(line => line.text).join(' ');
 
   return (
-    <div className="transcript-panel">
-      {allTranscriptText && (
-        <div className="transcript-full-text" style={{ marginBottom: '1em', color: '#333', background: '#f9f9f9', padding: '8px', borderRadius: '4px', fontSize: '0.95em' }}>
-          {allTranscriptText}
-        </div>
-      )}
+    <div 
+      className="transcript-panel" 
+      style={{ 
+        flexGrow: 1, // Allow panel to grow and fill available vertical space
+        overflowY: 'auto', // Enable vertical scrolling for transcript lines
+        borderTop: '1px solid #222', // Add a separator from the YouTube panel
+        height: '0px', // Necessary for flexGrow to work correctly in some flex contexts
+        minHeight: 0,
+        background: '#282c34'
+      }}
+    >
       {transcriptLines.length > 0 ? (
-        <ul className="transcript-list">
-          {transcriptLines.map((line, index) => {
-            const isActive = currentTime >= line.start && currentTime < line.start + line.duration;
-            return (
-              <li 
-                key={index} 
-                className={isActive ? "active-transcript-line" : ""}
-                ref={isActive ? currentLineRef : null}
-              >
-                {line.text}
-              </li>
-            );
-          })}
-        </ul>
+        <div className="transcript-list">
+          {transcriptLines.map((line, index) => (
+            <div 
+              key={index} 
+              className="transcript-line" // Added className for potential CSS styling
+              style={{ 
+                padding: '8px 12px', 
+                borderBottom: '1px solid #f0f0f0', 
+                cursor: 'pointer',
+                fontSize: '0.9em',
+                lineHeight: '1.5',
+              }}
+              // onClick={() => console.log("Clicked line:", line)} // Example onClick
+            >
+              {line.text}
+            </div>
+          ))}
+        </div>
       ) : (
-        <p>字幕情報はありません。</p>
+        <div style={{ padding: '20px', textAlign: 'center', color: '#777' }}>
+          No transcript available.
+        </div>
       )}
     </div>
   );
@@ -300,28 +309,28 @@ function TranscriptPanel({ text, currentTime, isLoading, error }) { // ★ MODIF
 const TEST_VIDEO_ID = "iRJvKaCGPl0";
 const TEST_TRANSCRIPT = [];
 
-// ★ 追加: テスト用のYouTube動画データ (20個に増やす)
+// ★ MODIFIED: テスト用のYouTube動画データをマンガ創作コンテンツに変更
 const mockYouTubeVideos = [
-  { id: "dQw4w9WgXcQ", title: "Rick Astley - Never Gonna Give You Up", thumbnailUrl: "https://i.ytimg.com/vi/dQw4w9WgXcQ/hqdefault.jpg" },
-  { id: "QH2-TGUlwu4", title: "Nyan Cat [original]", thumbnailUrl: "https://i.ytimg.com/vi/QH2-TGUlwu4/hqdefault.jpg" },
-  { id: "V-_O7nl0Ii0", title: "Keyboard Cat!", thumbnailUrl: "https://i.ytimg.com/vi/V-_O7nl0Ii0/hqdefault.jpg" },
-  { id: "ZZ5LpwO-An4", title: "Charlie bit my finger - again !", thumbnailUrl: "https://i.ytimg.com/vi/ZZ5LpwO-An4/hqdefault.jpg" },
-  { id: "tntOCGkgt98", title: "Chocolate Rain Original Song by Tay Zonday", thumbnailUrl: "https://i.ytimg.com/vi/tntOCGkgt98/hqdefault.jpg" },
-  { id: "oHg5SJYRHA0", title: "The Gummy Bear Song", thumbnailUrl: "https://i.ytimg.com/vi/oHg5SJYRHA0/hqdefault.jpg" },
-  { id: "yPYZpwSpKmA", title: "Crazy Frog - Axel F", thumbnailUrl: "https://i.ytimg.com/vi/yPYZpwSpKmA/hqdefault.jpg" },
-  { id: "fWNaR-rxAic", title: "Baby Shark Dance", thumbnailUrl: "https://i.ytimg.com/vi/fWNaR-rxAic/hqdefault.jpg" },
-  { id: "kJQP7kiw5Fk", title: "PSY - GANGNAM STYLE", thumbnailUrl: "https://i.ytimg.com/vi/kJQP7kiw5Fk/hqdefault.jpg" },
-  { id: "HPj61QnhX_A", title: "Pen Pineapple Apple Pen", thumbnailUrl: "https://i.ytimg.com/vi/HPj61QnhX_A/hqdefault.jpg" },
-  { id: "jNQXAC9IVRw", title: "Me at the zoo", thumbnailUrl: "https://i.ytimg.com/vi/jNQXAC9IVRw/hqdefault.jpg" },
-  { id: "L_jWHffIx5E", title: "David After Dentist", thumbnailUrl: "https://i.ytimg.com/vi/L_jWHffIx5E/hqdefault.jpg" },
-  { id: "EwTZ2xpQwpA", title: "Rebecca Black - Friday", thumbnailUrl: "https://i.ytimg.com/vi/EwTZ2xpQwpA/hqdefault.jpg" },
-  { id: "OQSNhk5ICTI", title: "Dramatic Chipmunk", thumbnailUrl: "https://i.ytimg.com/vi/OQSNhk5ICTI/hqdefault.jpg" },
-  { id: "sCNrK-n68CM", title: "Shoes The Full Version", thumbnailUrl: "https://i.ytimg.com/vi/sCNrK-n68CM/hqdefault.jpg" },
-  { id: "zYKupOsaJmk", title: "Potter Puppet Pals: The Mysterious Ticking Noise", thumbnailUrl: "https://i.ytimg.com/vi/zYKupOsaJmk/hqdefault.jpg" },
-  { id: "KmtzQCSh6xk", title: "The Duck Song", thumbnailUrl: "https://i.ytimg.com/vi/KmtzQCSh6xk/hqdefault.jpg" },
-  { id: "M3iOROuTuMA", title: "Salad Fingers Episode 1 Spoons", thumbnailUrl: "https://i.ytimg.com/vi/M3iOROuTuMA/hqdefault.jpg" },
-  { id: "Y1hcc1QvM2Q", title: "Badger Badger Badger", thumbnailUrl: "https://i.ytimg.com/vi/Y1hcc1QvM2Q/hqdefault.jpg" },
-  { id: "X21mJh6j9i4", title: "The Annoying Orange", thumbnailUrl: "https://i.ytimg.com/vi/X21mJh6j9i4/hqdefault.jpg" },
+  { id: "iRJvKaCGPl0", title: "【プロ漫画家】背景の描き方講座！パースなんて怖くない！", thumbnailUrl: "https://img.youtube.com/vi/iRJvKaCGPl0/hqdefault.jpg" },
+  { id: "Qw4nVbQ1n9w", title: "【初心者向け】魅力的なキャラクターデザインのコツ５選", thumbnailUrl: "https://img.youtube.com/vi/Qw4nVbQ1n9w/hqdefault.jpg" },
+  { id: "3kQ1J2Qw9nA", title: "漫画のコマ割り教室！読者を惹きつける画面構成とは？", thumbnailUrl: "https://img.youtube.com/vi/3kQ1J2Qw9nA/hqdefault.jpg" },
+  { id: "2lQ1J2Qw9nB", title: "【デジタル作画】Clip Studio Paint基本操作ガイド", thumbnailUrl: "https://img.youtube.com/vi/2lQ1J2Qw9nB/hqdefault.jpg" },
+  { id: "4mQ1J2Qw9nC", title: "ストーリー漫画の作り方：プロットからネームまで徹底解説", thumbnailUrl: "https://img.youtube.com/vi/4mQ1J2Qw9nC/hqdefault.jpg" },
+  { id: "5nQ1J2Qw9nD", title: "【漫画家志望者必見】持ち込みで編集者に見られるポイント", thumbnailUrl: "https://img.youtube.com/vi/5nQ1J2Qw9nD/hqdefault.jpg" },
+  { id: "6oQ1J2Qw9nE", title: "簡単！ちびキャラ・SDキャラの描き方", thumbnailUrl: "https://img.youtube.com/vi/6oQ1J2Qw9nE/hqdefault.jpg" },
+  { id: "7pQ1J2Qw9nF", title: "【アナログ作画】Gペン・丸ペンの使い方と練習法", thumbnailUrl: "https://img.youtube.com/vi/7pQ1J2Qw9nF/hqdefault.jpg" },
+  { id: "8qQ1J2Qw9nG", title: "漫画のセリフ作成術！キャラが生き生きと喋り出す秘訣", thumbnailUrl: "https://img.youtube.com/vi/8qQ1J2Qw9nG/hqdefault.jpg" },
+  { id: "9rQ1J2Qw9nH", title: "【背景時短】写真から漫画背景を制作する方法", thumbnailUrl: "https://img.youtube.com/vi/9rQ1J2Qw9nH/hqdefault.jpg" },
+  { id: "0sQ1J2Qw9nI", title: "漫画家の一日ルーティン！リアルな仕事現場を公開", thumbnailUrl: "https://img.youtube.com/vi/0sQ1J2Qw9nI/hqdefault.jpg" },
+  { id: "1tQ1J2Qw9nJ", title: "【イラスト添削】あなたの絵が劇的に変わるアドバイス！", thumbnailUrl: "https://img.youtube.com/vi/1tQ1J2Qw9nJ/hqdefault.jpg" },
+  { id: "2uQ1J2Qw9nK", title: "漫画のカラーイラスト講座：色の選び方と塗り方", thumbnailUrl: "https://img.youtube.com/vi/2uQ1J2Qw9nK/hqdefault.jpg" },
+  { id: "3vQ1J2Qw9nL", title: "【同人誌制作】印刷所選びから入稿までの流れ", thumbnailUrl: "https://img.youtube.com/vi/3vQ1J2Qw9nL/hqdefault.jpg" },
+  { id: "4wQ1J2Qw9nM", title: "漫画の効果線・集中線の描き方バリエーション", thumbnailUrl: "https://img.youtube.com/vi/4wQ1J2Qw9nM/hqdefault.jpg" },
+  { id: "5xQ1J2Qw9nN", title: "【プロアシスタント】背景作画のスピードアップ術", thumbnailUrl: "https://img.youtube.com/vi/5xQ1J2Qw9nN/hqdefault.jpg" },
+  { id: "6yQ1J2Qw9nO", title: "魅力的な表情の描き分け講座：喜怒哀楽を表現する", thumbnailUrl: "https://img.youtube.com/vi/6yQ1J2Qw9nO/hqdefault.jpg" },
+  { id: "7zQ1J2Qw9nP", title: "【漫画賞】受賞するための作品作り戦略", thumbnailUrl: "https://img.youtube.com/vi/7zQ1J2Qw9nP/hqdefault.jpg" },
+  { id: "8aQ1J2Qw9nQ", title: "ファンタジー世界の武器・防具デザインのアイデア", thumbnailUrl: "https://img.youtube.com/vi/8aQ1J2Qw9nQ/hqdefault.jpg" },
+  { id: "9bQ1J2Qw9nR", title: "漫画家デビューへの道：体験談とアドバイス", thumbnailUrl: "https://img.youtube.com/vi/9bQ1J2Qw9nR/hqdefault.jpg" },
 ];
 
 export default function ChatApp() {
@@ -343,6 +352,52 @@ export default function ChatApp() {
   // --- ADDED: File Upload Dialog state ---
   const [selectedFile, setSelectedFile] = useState(null);
   const [fileUploadError, setFileUploadError] = useState("");
+  // ★ 追加: 右カラム幅の状態とドラッグ用ref
+  const [rightColumnWidth, setRightColumnWidth] = useState(40); // 初期値: 40%
+  const isResizingRef = useRef(false);
+  const initialMouseXRef = useRef(0);
+  const initialWidthRef = useRef(0);
+
+  // ドラッグ開始
+  const handleMouseDownOnDivider = (e) => {
+    isResizingRef.current = true;
+    initialMouseXRef.current = e.clientX;
+    initialWidthRef.current = rightColumnWidth;
+    document.body.style.cursor = 'col-resize';
+    // Prevent text selection while dragging
+    document.body.style.userSelect = 'none';
+  };
+
+  // ドラッグ中
+  useEffect(() => {
+    const handleMouseMove = (e) => {
+      if (!isResizingRef.current) return;
+      const container = document.querySelector('.container');
+      if (!container) return;
+      const containerRect = container.getBoundingClientRect();
+      const minPercent = 30;
+      const maxPercent = 50;
+      // ドラッグ開始時のマウス位置との差分で幅を計算
+      const deltaX = initialMouseXRef.current - e.clientX;
+      let newWidthPercent = initialWidthRef.current + (deltaX / containerRect.width) * 100;
+      newWidthPercent = Math.max(minPercent, Math.min(maxPercent, newWidthPercent));
+      console.log(`Calculated newWidthPercent: ${newWidthPercent}`); // デバッグログ追加
+      setRightColumnWidth(newWidthPercent);
+    };
+    const handleMouseUp = () => {
+      if (isResizingRef.current) {
+        isResizingRef.current = false;
+        document.body.style.cursor = '';
+        document.body.style.userSelect = '';
+      }
+    };
+    window.addEventListener('mousemove', handleMouseMove);
+    window.addEventListener('mouseup', handleMouseUp);
+    return () => {
+      window.removeEventListener('mousemove', handleMouseMove);
+      window.removeEventListener('mouseup', handleMouseUp);
+    };
+  }, []);
 
   // ドットアニメーション
   useEffect(() => {
@@ -661,15 +716,19 @@ export default function ChatApp() {
           </div>
         </div>
       )}
-        <div className="container">
-          <div className="left">
+        <div className="container" style={{ display: 'flex', width: '100%', height: 'calc(100vh - 48px)' }}>
+          <div className="left" style={{ flexGrow: 1, flexBasis: 0, minWidth: 0, maxWidth: `${100 - rightColumnWidth}%`, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
             <ChatHistory messages={messages} onDeleteMessage={handleDeleteMessage} isThinking={isThinking} thinkingDots={thinkingDots} />
             <ChatInput value={input} onChange={setInput} onSend={handleSend} />
           </div>
-          <div className="right">
-            {/* YouTubePanelにonReadyとonStateChangeハンドラを渡す (react-youtube を使う場合) */}
-            {/* ここでは標準のiframeなので、postMessage API等を使うか、react-youtubeのようなライブラリ導入を検討 */} 
-            <YouTubePanel videoId={videoId} /> 
+          {/* ★ ドラッグ用ディバイダー */}
+          <div
+            className="column-divider"
+            style={{ width: 8, cursor: 'col-resize', background: '#282c34', zIndex: 2 }}
+            onMouseDown={handleMouseDownOnDivider}
+          />
+          <div className="right" style={{ flexBasis: `${rightColumnWidth}%`, minWidth: '30%', maxWidth: '50%', display: 'flex', flexDirection: 'column', transition: isResizingRef.current ? 'none' : 'flex-basis 0.2s', background: '#282c34' }}>
+            <YouTubePanel videoId={videoId} />
             <TranscriptPanel text={transcript} currentTime={currentVideoTime} isLoading={isTranscriptLoading} error={transcriptError} />
           </div>
         </div>

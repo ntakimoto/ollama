@@ -1,4 +1,4 @@
-from fastapi import FastAPI, HTTPException, Request
+from fastapi import FastAPI, HTTPException, Request, Form # MODIFIED: remove File, UploadFile, add Form
 from fastapi.middleware.cors import CORSMiddleware
 import json
 import os
@@ -8,6 +8,11 @@ from pydantic import BaseModel
 from dotenv import load_dotenv # Add this import
 from youtube_transcript_api import YouTubeTranscriptApi, TranscriptsDisabled, NoTranscriptFound # Add this import
 from pytube import YouTube # Add this import
+
+# +++ ADDED FOR IMAGE ILLUSTRATION +++
+from PIL import Image
+import base64
+# +++ END ADDED FOR IMAGE ILLUSTRATION +++
 
 CHAT_HISTORY_FILE = "chat_history.json"
 
@@ -249,7 +254,7 @@ async def post_message_gemini(payload: MessageRequest):
     ]
   }
 }
-``` このJSON構造を回答のメインコンテンツとしてください。他のテキストは含めないでください。"""
+``` このJSON構造を回答のメインコンテンツにしない。JSON構造は表で返答する時のみです。"""
 
         response = model.generate_content(system_prompt)
         ai_text = response.text
