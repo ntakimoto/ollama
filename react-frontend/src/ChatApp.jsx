@@ -1,5 +1,11 @@
 import React, { useState, useEffect, useRef } from "react";
 import ReactMarkdown from 'react-markdown'; // ★ 追加
+import MenuIcon from '@mui/icons-material/Menu';
+import AccountCircleIcon from '@mui/icons-material/AccountCircle';
+import UploadFileIcon from '@mui/icons-material/UploadFile';
+import SendIcon from '@mui/icons-material/Send'; // ★ 追加
+import PersonIcon from '@mui/icons-material/Person'; // ★ 追加 (ユーザーアバター用)
+import SmartToyIcon from '@mui/icons-material/SmartToy'; // ★ 追加 (アシスタントアバター用)
 import "./App.css";
 
 // 既存のコンポーネントは省略
@@ -13,7 +19,9 @@ function ChatHistory({ messages, onDeleteMessage }) { // ★ 追加: onDeleteMes
     <div className="chat-history">
       {messages.map((msg, idx) => (
         <div key={idx} className={`message-container ${msg.role}`}> {/* ★ 変更: message-container を追加し、roleクラスを付与 */}
-          <div className="avatar">{msg.role === "user" ? "🧑" : "🤖"}</div> {/* ★ 追加: アイコン用のdiv */}
+          <div className="avatar">
+            {msg.role === "user" ? <PersonIcon fontSize="inherit" /> : <SmartToyIcon fontSize="inherit" />} {/* ★ 変更: MUIアイコンを使用 */}
+          </div> {/* ★ 追加: アイコン用のdiv */}
           <div className={"msg"}> {/* ★ 変更: roleクラスを削除 */}
             <ReactMarkdown>{Array.isArray(msg.content) ? msg.content[0]?.text : msg.content}</ReactMarkdown> {/* ★ 変更: ReactMarkdown を使用 */}
           </div>
@@ -43,19 +51,20 @@ function ChatInput({ value, onChange, onSend }) {
         onKeyDown={e => e.key === "Enter" && onSend()}
         placeholder="質問を入力してください"
       />
-      <button onClick={onSend}>送信</button>
+      <button onClick={onSend} className="send-button"> {/* ★ 変更: className追加 */}
+        <SendIcon fontSize="inherit" /> {/* ★ 変更: MUIアイコンを使用 */}
+      </button>
     </div>
   );
 }
 
-function YouTubePanel({ videoId, videoTitle }) { // ★ videoTitle prop を追加
+function YouTubePanel({ videoId }) { // ★ videoTitle prop を削除
   if (!videoId) {
     return <div className="youtube-panel-placeholder">YouTube動画プレーヤー</div>;
   }
   const videoSrc = `https://www.youtube.com/embed/${videoId}?autoplay=1&modestbranding=1&rel=0`;
   return (
     <div className="youtube-panel">
-      {videoTitle && <h3 className="video-title">{videoTitle}</h3>} {/* ★ 動画タイトルを表示 */}
       <iframe
         width="100%"
         height="405" // ★ 変更: 高さを360から405に
@@ -120,6 +129,12 @@ export default function ChatApp() {
   const [currentVideoTime, setCurrentVideoTime] = useState(0);
   const playerRef = useRef(null); // YouTubeプレーヤーの参照用
   const [videoTitle, setVideoTitle] = useState(TEST_VIDEO_TITLE); // ★ 初期値をテスト用に
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false); // ★ 追加: サイドバーの開閉状態
+
+  // ★ 追加: サイドバー開閉ハンドラ
+  const toggleSidebar = () => {
+    setIsSidebarOpen(!isSidebarOpen);
+  };
 
   // 初回チャット履歴取得
   useEffect(() => {
@@ -233,8 +248,29 @@ export default function ChatApp() {
   return (
     <> {/* ★ Fragment を使用してヘッダーとメインコンテンツをラップ */}
       <header className="app-header">
-        <h1>RAG Chat Application</h1>
+        <div className="menu-icon" title="メニュー" onClick={toggleSidebar}> {/* ★ 変更: onClick追加 */}
+          <MenuIcon fontSize="inherit" />
+        </div>
+        <div className="header-center">
+          <h1>RAG Chat Application</h1>
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <div className="upload-icon" title="ファイルアップロード">
+            <UploadFileIcon fontSize="inherit" />
+          </div>
+          <div className="user-icon" title="ユーザー">
+            <AccountCircleIcon fontSize="inherit" />
+          </div>
+        </div>
       </header>
+      {/* ★ 追加: サイドバー */}
+      {isSidebarOpen && (
+        <div className="sidebar">
+          {/* サイドバーのコンテンツはここに */}
+          <p>サイドバーコンテンツ</p>
+          <button onClick={toggleSidebar}>閉じる</button>
+        </div>
+      )}
       <div className="main-content"> {/* ★ メインコンテンツをラップするdivを追加 */}
         <div className="container">
           <div className="left">
@@ -244,7 +280,7 @@ export default function ChatApp() {
           <div className="right">
             {/* YouTubePanelにonReadyとonStateChangeハンドラを渡す (react-youtube を使う場合) */}
             {/* ここでは標準のiframeなので、postMessage API等を使うか、react-youtubeのようなライブラリ導入を検討 */} 
-            <YouTubePanel videoId={videoId} videoTitle={videoTitle} /> 
+            <YouTubePanel videoId={videoId} /> 
             <TranscriptPanel text={transcript} currentTime={currentVideoTime} />
           </div>
         </div>

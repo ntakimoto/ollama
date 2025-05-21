@@ -1,8 +1,7 @@
 .app-header {
   background-color: #282c34;
-  padding: 0 20px;
+  padding: 0 20px 0 20px; /* 右側のpaddingを調整 */
   color: white;
-  text-align: center;
   position: fixed; /* ★ ヘッダーを固定 */
   top: 0;
   left: 0;
@@ -11,13 +10,60 @@
   z-index: 1000; /* 他の要素より手前に表示 */
   display: flex; /* ★ h1を中央揃えにするため */
   align-items: center; /* ★ h1を中央揃えにするため */
-  justify-content: center; /* ★ h1を中央揃えにするため */
+  box-sizing: border-box; /* ★ 追加: paddingとborderをwidth/heightに含める */
+}
+
+/* ★ 追加: サイドバーのスタイル */
+.sidebar {
+  position: fixed;
+  top: 48px; /* ヘッダーの高さに合わせる */
+  left: 0;
+  width: 375px; /* サイドバーの幅 (250px * 1.5) */
+  height: calc(100% - 48px); /* ヘッダーの高さを引いた高さ */
+  background-color: #1e1e1e; /* サイドバーの背景色 */
+  color: white;
+  padding: 20px;
+  box-shadow: 2px 0 5px rgba(0,0,0,0.5); /* 影を追加 */
+  z-index: 999; /* ヘッダーよりは下、メインコンテンツよりは上 */
+  transform: translateX(0);
+  transition: transform 0.3s ease-in-out;
+}
+
+.sidebar.closed { /* 必要に応じて閉じた状態のスタイルを追加 */
+  transform: translateX(-100%);
+}
+/* ここまでサイドバーのスタイル */
+
+.menu-icon {
+  font-size: 1.8rem;
+  cursor: pointer;
+  flex: 0 0 auto;
+}
+
+.header-center {
+  flex: 1 1 auto;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.user-icon {
+  font-size: 1.5rem; /* アイコンサイズ調整 */
+  cursor: pointer;
+  flex: 0 0 auto;
+  margin-right: 0; /* 右端の余白をなくす */
+}
+
+.upload-icon {
+  font-size: 1.5rem;
+  cursor: pointer;
 }
 
 .app-header h1 {
-  margin: 0;
   font-size: 1.5rem;
   line-height: 48px; /* ★ ヘッダーの高さに合わせる */
+  text-align: center; /* 明示的に中央揃え */
+  margin: 0;
 }
 
 .main-content {
@@ -96,8 +142,10 @@
 
 /* ★ 追加: アバター（アイコン）のスタイル */
 .avatar {
-  font-size: 1.5rem; /* アイコンサイズ調整 */
+  font-size: 1.8rem; /* アイコンサイズ調整 */
   margin: 0 0.5rem; /* 吹き出しとの間隔 */
+  display: flex; /* ★ 追加: MUIアイコンを中央揃えにするため */
+  align-items: center; /* ★ 追加: MUIアイコンを中央揃えにするため */
 }
 
 .msg {
@@ -171,7 +219,16 @@
   color: #fff;
   border: none;
   cursor: pointer;
+  display: flex; /* ★ 追加: アイコンを中央揃えにするため */
+  align-items: center; /* ★ 追加: アイコンを中央揃えにするため */
+  justify-content: center; /* ★ 追加: アイコンを中央揃えにするため */
 }
+
+.chat-input button.send-button {
+  padding: 0.5rem; /* ★ 変更: アイコンボタンなのでパディング調整 */
+  font-size: 1.2rem; /* ★ 追加: アイコンサイズ調整 */
+}
+
 .youtube-panel, .transcript-panel {
   margin-bottom: 1rem;
   background: #222;
@@ -254,4 +311,4 @@
   background-color: #4a4a4a; /* Or a slightly different shade than regular hover */
   color: #ffffff;
   font-weight: bold;
-} /* ★ 追加: 閉じ括弧を追加 */
+}
