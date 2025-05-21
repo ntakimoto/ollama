@@ -459,6 +459,22 @@
   flex-direction: column; /* 子要素を縦に並べる */
 }
 
+/* ★ ADDED: Styles for transcript loading and error states */
+.transcript-loading,
+.transcript-error {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100%; /* Fill the panel */
+  color: #555; /* Muted text color */
+  font-style: italic;
+}
+
+.transcript-error {
+  color: #d32f2f; /* Error color (e.g., red) */
+}
+/* End of transcript loading/error styles */
+
 .transcript-panel h3 {
   margin-top: 0;
   margin-bottom: 10px;
@@ -588,6 +604,49 @@
   display: flex;
   flex-direction: column;
 }
+
+/* ★ ADDED: Specific styles for File Upload Dialog */
+.file-upload-dialog .file-input {
+  display: none; /* Hide the default input */
+}
+
+.file-upload-dialog .file-input-label {
+  display: inline-block;
+  padding: 10px 15px;
+  margin: 15px 0;
+  background-color: #555;
+  color: white;
+  border: 1px solid #666;
+  border-radius: 4px;
+  cursor: pointer;
+  text-align: center;
+  transition: background-color 0.2s ease;
+}
+
+.file-upload-dialog .file-input-label:hover {
+  background-color: #666;
+}
+
+.file-upload-dialog .file-upload-error {
+  color: #ff6b6b; /* A light red for errors */
+  font-size: 0.9em;
+  margin-top: 5px;
+  margin-bottom: 10px;
+}
+
+.file-upload-dialog .dialog-actions {
+  margin-top: 20px;
+  display: flex;
+  justify-content: flex-end; /* Align button to the right */
+}
+
+/* Style for the MUI button if needed, though MUI handles its own styling mostly 
+.upload-button-mui {
+   You can add overrides here if necessary 
+   For example: 
+   background-color: #1976d2 !important;  
+}
+*/
 
 .dialog-content h2 {
   margin-top: 0;

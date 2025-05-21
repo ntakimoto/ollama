@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useMemo } from "react"; // ★ MODIFIED: Added useMemo
 import ReactMarkdown from 'react-markdown'; // ★ 追加
 import MenuIcon from '@mui/icons-material/Menu';
 import AccountCircleIcon from '@mui/icons-material/AccountCircle';
@@ -9,6 +9,7 @@ import SmartToyIcon from '@mui/icons-material/SmartToy'; // ★ 追加 (アシ�
 import ThumbUpAltOutlinedIcon from '@mui/icons-material/ThumbUpAltOutlined'; // ★ 追加: 評価アイコン
 import ThumbDownAltOutlinedIcon from '@mui/icons-material/ThumbDownAltOutlined'; // ★ 追加: 評価アイコン
 import CloseIcon from '@mui/icons-material/Close'; // ★ ADDED: Close icon for sidebar
+import Button from '@mui/material/Button'; // ★ ADDED: MUI Button for file upload
 import { useReactTable, getCoreRowModel, flexRender } from '@tanstack/react-table';
 import "./App.css";
 
@@ -234,8 +235,9 @@ function YouTubePanel({ videoId }) { // ★ videoTitle prop を削除
   );
 }
 
-function TranscriptPanel({ text, currentTime }) { // ★ 変更: currentTime prop を追加
-  const transcriptLines = Array.isArray(text) ? text : []; // ★ 変更: text が配列であることを期待
+// ★ 変更: currentTime prop を追加
+function TranscriptPanel({ text, currentTime, isLoading, error }) { // ★ MODIFIED: Added isLoading, error props
+  const transcriptLines = useMemo(() => (Array.isArray(text) ? text : []), [text]); // ★ MODIFIED: Wrapped in useMemo
   const currentLineRef = useRef(null);
 
   useEffect(() => {
@@ -245,9 +247,24 @@ function TranscriptPanel({ text, currentTime }) { // ★ 変更: currentTime pro
         block: "center",
       });
     }
-  }, [currentTime]); // currentTime が変わるたびにスクロール
+  }, [currentTime, transcriptLines]); // ★ MODIFIED: Added transcriptLines to dependency array
 
-  // 字幕全文を連結して表示
+  if (isLoading) {
+    return (
+      <div className="transcript-panel">
+        <div className="transcript-loading">Loading transcript...</div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="transcript-panel">
+        <div className="transcript-error">{error}</div>
+      </div>
+    );
+  }
+
   const allTranscriptText = transcriptLines.map(line => line.text).join(' ');
 
   return (
@@ -320,6 +337,12 @@ export default function ChatApp() {
   // --- ADDED: Dialog states ---
   const [isFileUploadDialogOpen, setIsFileUploadDialogOpen] = useState(false);
   const [isUserDialogOpen, setIsUserDialogOpen] = useState(false);
+  // --- ADDED: Transcript loading and error states ---
+  const [isTranscriptLoading, setIsTranscriptLoading] = useState(true);
+  const [transcriptError, setTranscriptError] = useState(null);
+  // --- ADDED: File Upload Dialog state ---
+  const [selectedFile, setSelectedFile] = useState(null);
+  const [fileUploadError, setFileUploadError] = useState("");
 
   // ドットアニメーション
   useEffect(() => {
@@ -333,21 +356,52 @@ export default function ChatApp() {
     return () => clearInterval(interval);
   }, [isThinking]);
 
-  // ★ 初期表示時に字幕全文を取得
+  // ★ 初期表示時に字幕全文を取得 (with retry logic)
   useEffect(() => {
-    async function fetchInitialTranscript() {
-      try {
-        const res = await fetch(`/api/messages/transcript/${TEST_VIDEO_ID}`);
-        if (res.ok) {
-          const data = await res.json();
-          setTranscript(Array.isArray(data.transcript) ? data.transcript : []);
+    async function fetchInitialTranscriptWithRetries() {
+      setIsTranscriptLoading(true);
+      setTranscriptError(null);
+      // setTranscript(TEST_TRANSCRIPT); // Initial state is already TEST_TRANSCRIPT (empty array)
+
+      const maxRetries = 3;
+      const retryDelay = 2000; // 2 seconds
+
+      for (let attempt = 1; attempt <= maxRetries; attempt++) {
+        try {
+          const res = await fetch(`/api/messages/transcript/${TEST_VIDEO_ID}`);
+          if (res.ok) {
+            const data = await res.json();
+            setTranscript(Array.isArray(data.transcript) ? data.transcript : []);
+            setTranscriptError(null);
+            setIsTranscriptLoading(false);
+            return; // Success, exit function
+          }
+          // Handle non-OK response
+          const errorText = await res.text().catch(() => "Could not parse error response.");
+          if (attempt === maxRetries) {
+            console.error(`Failed to fetch transcript after ${maxRetries} attempts. Status: ${res.status}, Response: ${errorText}`);
+            setTranscriptError(`Failed to load transcript (Status: ${res.status}).`);
+            setTranscript([]);
+          } else {
+            console.warn(`Attempt ${attempt} failed to fetch transcript. Status: ${res.status}. Retrying in ${retryDelay / 1000}s...`);
+          }
+        } catch (e) {
+          console.error(`Attempt ${attempt} - Error fetching transcript:`, e);
+          if (attempt === maxRetries) {
+            setTranscriptError("Failed to load transcript due to a network or parsing error.");
+            setTranscript([]);
+          } else {
+            console.warn(`Retrying in ${retryDelay / 1000}s...`);
+          }
         }
-      } catch (e) {
-        // エラー時は何もしない
+        if (attempt < maxRetries) {
+          await new Promise(resolve => setTimeout(resolve, retryDelay));
+        }
       }
+      setIsTranscriptLoading(false); // Ensure loading is set to false after all attempts
     }
-    fetchInitialTranscript();
-  }, []);
+    fetchInitialTranscriptWithRetries();
+  }, []); // Empty dependency array to run once on mount, as TEST_VIDEO_ID is const
 
   // ★ 追加: サイドバー開閉ハンドラ
   const toggleSidebar = () => {
@@ -357,10 +411,61 @@ export default function ChatApp() {
   // --- ADDED: Dialog toggle functions ---
   const toggleFileUploadDialog = () => {
     setIsFileUploadDialogOpen(!isFileUploadDialogOpen);
+    setSelectedFile(null); // Reset file selection when dialog closes
+    setFileUploadError(""); // Reset error message
   };
 
   const toggleUserDialog = () => {
     setIsUserDialogOpen(!isUserDialogOpen);
+  };
+
+  // --- ADDED: File Upload Handlers ---
+  const handleFileChange = (event) => {
+    const file = event.target.files[0];
+    if (file) {
+      const allowedTypes = ['.txt', '.csv'];
+      const fileExtension = file.name.substring(file.name.lastIndexOf('.')).toLowerCase();
+      if (allowedTypes.includes(fileExtension)) {
+        setSelectedFile(file);
+        setFileUploadError("");
+      } else {
+        setSelectedFile(null);
+        setFileUploadError("無効なファイル形式です。.txt または .csv ファイルを選択してください。"); // TRANSLATED
+      }
+    } else {
+      setSelectedFile(null);
+    }
+  };
+
+  const handleFileUpload = async () => {
+    if (!selectedFile) {
+      setFileUploadError("アップロードするファイルを選択してください。"); // TRANSLATED
+      return;
+    }
+    // Placeholder for actual file upload logic
+    console.log("ファイルをアップロード中:", selectedFile.name); // TRANSLATED
+    // Example:
+    // const formData = new FormData();
+    // formData.append('file', selectedFile);
+    // try {
+    //   const response = await fetch('/api/upload', { // Replace with your actual upload endpoint
+    //     method: 'POST',
+    //     body: formData,
+    //   });
+    //   if (response.ok) {
+    //     console.log('ファイルが正常にアップロードされました'); // TRANSLATED
+    //     toggleFileUploadDialog(); // Close dialog on success
+    //   } else {
+    //     const errorData = await response.json().catch(() => ({ detail: "アップロード失敗" })); // TRANSLATED
+    //     setFileUploadError(errorData.detail || "ファイルのアップロードに失敗しました。"); // TRANSLATED
+    //     console.error('ファイルのアップロードに失敗しました:', errorData); // TRANSLATED
+    //   }
+    // } catch (error) {
+    //   setFileUploadError("アップロード中にエラーが発生しました。"); // TRANSLATED
+    //   console.error('ファイルアップロード中のエラー:', error); // TRANSLATED
+    // }
+    // For now, just close the dialog and log
+    toggleFileUploadDialog();
   };
 
   // 初回チャット履歴取得
@@ -508,13 +613,37 @@ export default function ChatApp() {
 {/* --- ADDED: File Upload Dialog --- */}
       {isFileUploadDialogOpen && (
         <div className="dialog-backdrop"> {/* ★ MODIFIED: onClick removed */}
-          <div className="dialog-content" onClick={(e) => e.stopPropagation()}>
-            <h2>File Upload</h2>
-            <p>This is the file upload dialog.</p>
+          <div className="dialog-content file-upload-dialog" onClick={(e) => e.stopPropagation()}>
+            <h2>ファイルアップロード</h2> {/* TRANSLATED */}
+            <p>.txt または .csv ファイルを選択してアップロードしてください。</p> {/* TRANSLATED */}
+            
+            <input
+              type="file"
+              accept=".txt,.csv"
+              onChange={handleFileChange}
+              className="file-input"
+              id="file-upload-input" // Added id for label association
+            />
+            <label htmlFor="file-upload-input" className="file-input-label">
+              {selectedFile ? selectedFile.name : "ファイルを選択..."} {/* TRANSLATED */}
+            </label>
+
+            {fileUploadError && <p className="file-upload-error">{fileUploadError}</p>}
+            
+            <div className="dialog-actions">
+              <Button 
+                variant="contained" 
+                onClick={handleFileUpload} 
+                disabled={!selectedFile}
+                className="upload-button-mui"
+              >
+                アップロード {/* TRANSLATED */}
+              </Button>
+            </div>
+
             <button onClick={toggleFileUploadDialog} className="dialog-close-button">
               <CloseIcon fontSize="inherit" />
             </button>
-            {/* Add file upload form or content here */}
           </div>
         </div>
       )}
@@ -541,7 +670,7 @@ export default function ChatApp() {
             {/* YouTubePanelにonReadyとonStateChangeハンドラを渡す (react-youtube を使う場合) */}
             {/* ここでは標準のiframeなので、postMessage API等を使うか、react-youtubeのようなライブラリ導入を検討 */} 
             <YouTubePanel videoId={videoId} /> 
-            <TranscriptPanel text={transcript} currentTime={currentVideoTime} />
+            <TranscriptPanel text={transcript} currentTime={currentVideoTime} isLoading={isTranscriptLoading} error={transcriptError} />
           </div>
         </div>
       </div>
