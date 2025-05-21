@@ -8,6 +8,7 @@ import PersonIcon from '@mui/icons-material/Person'; // ★ 追加 (ユーザー
 import SmartToyIcon from '@mui/icons-material/SmartToy'; // ★ 追加 (アシスタントアバター用)
 import ThumbUpAltOutlinedIcon from '@mui/icons-material/ThumbUpAltOutlined'; // ★ 追加: 評価アイコン
 import ThumbDownAltOutlinedIcon from '@mui/icons-material/ThumbDownAltOutlined'; // ★ 追加: 評価アイコン
+import CloseIcon from '@mui/icons-material/Close'; // ★ ADDED: Close icon for sidebar
 import { useReactTable, getCoreRowModel, flexRender } from '@tanstack/react-table';
 import "./App.css";
 
@@ -282,6 +283,30 @@ function TranscriptPanel({ text, currentTime }) { // ★ 変更: currentTime pro
 const TEST_VIDEO_ID = "iRJvKaCGPl0";
 const TEST_TRANSCRIPT = [];
 
+// ★ 追加: テスト用のYouTube動画データ (20個に増やす)
+const mockYouTubeVideos = [
+  { id: "dQw4w9WgXcQ", title: "Rick Astley - Never Gonna Give You Up", thumbnailUrl: "https://i.ytimg.com/vi/dQw4w9WgXcQ/hqdefault.jpg" },
+  { id: "QH2-TGUlwu4", title: "Nyan Cat [original]", thumbnailUrl: "https://i.ytimg.com/vi/QH2-TGUlwu4/hqdefault.jpg" },
+  { id: "V-_O7nl0Ii0", title: "Keyboard Cat!", thumbnailUrl: "https://i.ytimg.com/vi/V-_O7nl0Ii0/hqdefault.jpg" },
+  { id: "ZZ5LpwO-An4", title: "Charlie bit my finger - again !", thumbnailUrl: "https://i.ytimg.com/vi/ZZ5LpwO-An4/hqdefault.jpg" },
+  { id: "tntOCGkgt98", title: "Chocolate Rain Original Song by Tay Zonday", thumbnailUrl: "https://i.ytimg.com/vi/tntOCGkgt98/hqdefault.jpg" },
+  { id: "oHg5SJYRHA0", title: "The Gummy Bear Song", thumbnailUrl: "https://i.ytimg.com/vi/oHg5SJYRHA0/hqdefault.jpg" },
+  { id: "yPYZpwSpKmA", title: "Crazy Frog - Axel F", thumbnailUrl: "https://i.ytimg.com/vi/yPYZpwSpKmA/hqdefault.jpg" },
+  { id: "fWNaR-rxAic", title: "Baby Shark Dance", thumbnailUrl: "https://i.ytimg.com/vi/fWNaR-rxAic/hqdefault.jpg" },
+  { id: "kJQP7kiw5Fk", title: "PSY - GANGNAM STYLE", thumbnailUrl: "https://i.ytimg.com/vi/kJQP7kiw5Fk/hqdefault.jpg" },
+  { id: "HPj61QnhX_A", title: "Pen Pineapple Apple Pen", thumbnailUrl: "https://i.ytimg.com/vi/HPj61QnhX_A/hqdefault.jpg" },
+  { id: "jNQXAC9IVRw", title: "Me at the zoo", thumbnailUrl: "https://i.ytimg.com/vi/jNQXAC9IVRw/hqdefault.jpg" },
+  { id: "L_jWHffIx5E", title: "David After Dentist", thumbnailUrl: "https://i.ytimg.com/vi/L_jWHffIx5E/hqdefault.jpg" },
+  { id: "EwTZ2xpQwpA", title: "Rebecca Black - Friday", thumbnailUrl: "https://i.ytimg.com/vi/EwTZ2xpQwpA/hqdefault.jpg" },
+  { id: "OQSNhk5ICTI", title: "Dramatic Chipmunk", thumbnailUrl: "https://i.ytimg.com/vi/OQSNhk5ICTI/hqdefault.jpg" },
+  { id: "sCNrK-n68CM", title: "Shoes The Full Version", thumbnailUrl: "https://i.ytimg.com/vi/sCNrK-n68CM/hqdefault.jpg" },
+  { id: "zYKupOsaJmk", title: "Potter Puppet Pals: The Mysterious Ticking Noise", thumbnailUrl: "https://i.ytimg.com/vi/zYKupOsaJmk/hqdefault.jpg" },
+  { id: "KmtzQCSh6xk", title: "The Duck Song", thumbnailUrl: "https://i.ytimg.com/vi/KmtzQCSh6xk/hqdefault.jpg" },
+  { id: "M3iOROuTuMA", title: "Salad Fingers Episode 1 Spoons", thumbnailUrl: "https://i.ytimg.com/vi/M3iOROuTuMA/hqdefault.jpg" },
+  { id: "Y1hcc1QvM2Q", title: "Badger Badger Badger", thumbnailUrl: "https://i.ytimg.com/vi/Y1hcc1QvM2Q/hqdefault.jpg" },
+  { id: "X21mJh6j9i4", title: "The Annoying Orange", thumbnailUrl: "https://i.ytimg.com/vi/X21mJh6j9i4/hqdefault.jpg" },
+];
+
 export default function ChatApp() {
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState("");
@@ -292,6 +317,9 @@ export default function ChatApp() {
   // --- 追加: AI思考中アニメーション用 ---
   const [isThinking, setIsThinking] = useState(false);
   const [thinkingDots, setThinkingDots] = useState('…');
+  // --- ADDED: Dialog states ---
+  const [isFileUploadDialogOpen, setIsFileUploadDialogOpen] = useState(false);
+  const [isUserDialogOpen, setIsUserDialogOpen] = useState(false);
 
   // ドットアニメーション
   useEffect(() => {
@@ -324,6 +352,15 @@ export default function ChatApp() {
   // ★ 追加: サイドバー開閉ハンドラ
   const toggleSidebar = () => {
     setIsSidebarOpen(!isSidebarOpen);
+  };
+
+  // --- ADDED: Dialog toggle functions ---
+  const toggleFileUploadDialog = () => {
+    setIsFileUploadDialogOpen(!isFileUploadDialogOpen);
+  };
+
+  const toggleUserDialog = () => {
+    setIsUserDialogOpen(!isUserDialogOpen);
   };
 
   // 初回チャット履歴取得
@@ -433,23 +470,68 @@ export default function ChatApp() {
           <h1>RAG Chat Application</h1>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-          <div className="upload-icon" title="ファイルアップロード">
+          <div className="upload-icon" title="ファイルアップロード" onClick={toggleFileUploadDialog}>
             <UploadFileIcon fontSize="inherit" />
           </div>
-          <div className="user-icon" title="ユーザー">
+          <div className="user-icon" title="ユーザー" onClick={toggleUserDialog}>
             <AccountCircleIcon fontSize="inherit" />
           </div>
         </div>
       </header>
+      {/* ★ ADDED: Sidebar backdrop */}
+      {isSidebarOpen && <div className="sidebar-backdrop" onClick={toggleSidebar}></div>}
       {/* ★ 追加: サイドバー */}
       {isSidebarOpen && (
         <div className="sidebar">
           {/* サイドバーのコンテンツはここに */}
-          <p>サイドバーコンテンツ</p>
-          <button onClick={toggleSidebar}>閉じる</button>
+          <div className="sidebar-header"> {/* ★ ADDED: Header for title and close button */}
+            <h2>関連動画</h2>
+            <button onClick={toggleSidebar} className="sidebar-close-button-icon"> {/* ★ MODIFIED: ClassName and content */}
+              <CloseIcon fontSize="inherit" />
+            </button>
+          </div>
+          <ul className="youtube-video-list">
+            {mockYouTubeVideos.map(video => (
+              <li key={video.id} className="youtube-video-item">
+                <img src={video.thumbnailUrl} alt={video.title} className="youtube-thumbnail" />
+                <div className="video-info">
+                  <p className="video-title">{video.title}</p>
+                  {/* <p className="video-id">ID: {video.id}</p> */}
+                </div>
+              </li>
+            ))}
+          </ul>
+          {/* <button onClick={toggleSidebar} className="sidebar-close-button">閉じる</button> */} {/* ★ REMOVED: Old text button */}
         </div>
       )}
       <div className="main-content"> {/* ★ メインコンテンツをラップするdivを追加 */}
+{/* --- ADDED: File Upload Dialog --- */}
+      {isFileUploadDialogOpen && (
+        <div className="dialog-backdrop"> {/* ★ MODIFIED: onClick removed */}
+          <div className="dialog-content" onClick={(e) => e.stopPropagation()}>
+            <h2>File Upload</h2>
+            <p>This is the file upload dialog.</p>
+            <button onClick={toggleFileUploadDialog} className="dialog-close-button">
+              <CloseIcon fontSize="inherit" />
+            </button>
+            {/* Add file upload form or content here */}
+          </div>
+        </div>
+      )}
+
+      {/* --- ADDED: User Dialog --- */}
+      {isUserDialogOpen && (
+        <div className="dialog-backdrop"> {/* ★ MODIFIED: onClick removed */}
+          <div className="dialog-content" onClick={(e) => e.stopPropagation()}>
+            <h2>User Information</h2>
+            <p>This is the user information dialog.</p>
+            <button onClick={toggleUserDialog} className="dialog-close-button">
+              <CloseIcon fontSize="inherit" />
+            </button>
+            {/* Add user information or settings here */}
+          </div>
+        </div>
+      )}
         <div className="container">
           <div className="left">
             <ChatHistory messages={messages} onDeleteMessage={handleDeleteMessage} isThinking={isThinking} thinkingDots={thinkingDots} />

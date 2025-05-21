@@ -22,17 +22,144 @@
   height: calc(100% - 48px); /* ヘッダーの高さを引いた高さ */
   background-color: #1e1e1e; /* サイドバーの背景色 */
   color: white;
-  padding: 20px;
+  padding: 20px 20px 20px 0; /* ★ MODIFIED: Remove left padding */
   box-shadow: 2px 0 5px rgba(0,0,0,0.5); /* 影を追加 */
   z-index: 999; /* ヘッダーよりは下、メインコンテンツよりは上 */
   transform: translateX(0);
   transition: transform 0.3s ease-in-out;
+  display: flex; /* ★ 追加: フレックスコンテナにする */
+  flex-direction: column; /* ★ 追加: 縦方向に配置 */
+  box-sizing: border-box; /* ★ Ensure width includes padding/border if not already set elsewhere, good practice */
+}
+
+/* ★ ADDED: Styles for the sidebar backdrop */
+.sidebar-backdrop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.5); /* Semi-transparent black */
+  z-index: 998; /* Below sidebar (999), above main content */
+  /* No transition needed for backdrop, it appears/disappears with sidebar */
 }
 
 .sidebar.closed { /* 必要に応じて閉じた状態のスタイルを追加 */
   transform: translateX(-100%);
 }
 /* ここまでサイドバーのスタイル */
+
+/* ★ 追加: サイドバー内のYouTube動画リストのスタイル */
+.sidebar h2 {
+  margin-top: 0;
+  margin-bottom: 0; /* ★ MODIFIED: Remove bottom margin, handled by sidebar-header */
+  font-size: 1.2em;
+  padding-left: 20px; /* ★ ADDED: Indent title */
+  box-sizing: border-box; /* ★ ADDED: Ensure padding is within width calculations */
+  flex-grow: 1; /* ★ ADDED: Allow title to take available space */
+}
+
+.youtube-video-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  overflow-y: auto;
+  flex-grow: 1; /* ★ 追加: 利用可能なスペースを埋める */
+  /* ★ スクロールバーのスタイル (Firefox) */
+  scrollbar-width: thin;
+  scrollbar-color: #555 #1e1e1e; /* ★ MODIFIED: Track color to match sidebar background */
+}
+
+/* ★ スクロールバーのスタイル (Webkit系ブラウザ: Chrome, Edge, Safari) */
+.youtube-video-list::-webkit-scrollbar {
+  width: 8px; /* スクロールバーの幅 */
+}
+
+.youtube-video-list::-webkit-scrollbar-track {
+  background: #1e1e1e; /* サイドバーの背景色に合わせる */
+  border-radius: 10px;
+}
+
+.youtube-video-list::-webkit-scrollbar-thumb {
+  background-color: #555; /* サム（つまみ）の背景色 */
+  border-radius: 10px; /* サムの角丸 */
+  border: 0; /* ★ MODIFIED: Remove border to eliminate gap around thumb */
+}
+
+.youtube-video-list::-webkit-scrollbar-thumb:hover {
+  background-color: #777; /* サムのホバー時の背景色 */
+}
+
+.youtube-video-item {
+  display: flex;
+  align-items: center;
+  margin-bottom: 10px;
+  padding: 8px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.youtube-video-item:hover {
+  background-color: #333;
+}
+
+.youtube-thumbnail {
+  width: 100px; /* サムネイルの幅を固定 */
+  height: 56px; /* 16:9 アスペクト比 */
+  object-fit: cover;
+  border-radius: 4px;
+  margin-right: 10px;
+}
+
+.video-info {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  flex-grow: 1;
+  min-width: 0; /* これがないと長いタイトルでレイアウトが崩れることがある */
+}
+
+.video-title {
+  font-size: 0.9em;
+  color: #eee;
+  margin: 0 0 4px 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis; /* 長いタイトルを省略表示 */
+}
+
+.video-id {
+  font-size: 0.75em;
+  color: #888;
+  margin: 0;
+}
+
+/* ★ ADDED: Styles for the new sidebar header container */
+.sidebar-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-bottom: 10px; /* Replicates old h2 padding-bottom */
+  border-bottom: 1px solid #444; /* Replicates old h2 border-bottom */
+  margin-bottom: 15px; /* Replicates old h2 margin-bottom */
+}
+
+/* ★ MODIFIED: Styles for the close button, now an icon button */
+.sidebar-close-button-icon {
+  background: none;
+  border: none;
+  color: white;
+  cursor: pointer;
+  padding: 0; /* Remove padding for icon button */
+  font-size: 1.5rem; /* Adjust icon size as needed */
+  line-height: 1; /* Ensure proper vertical alignment */
+  margin-right: 20px; /* ★ ADDED: Space from the right edge */
+}
+
+.sidebar-close-button-icon:hover {
+  color: #aaa; /* Lighten icon on hover */
+}
 
 .menu-icon {
   font-size: 1.8rem;
@@ -433,4 +560,61 @@
 .table-container th {
   background-color: #f2f2f2; /* ヘッダーの背景色 */
   color: #000; /* ヘッダーの文字色を黒に設定 */
+}
+
+/* Dialog Styles */
+.dialog-backdrop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.6); /* Darker backdrop */
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000; /* Ensure dialog is on top */
+}
+
+.dialog-content {
+  background-color: #2c2c2c; /* Dark background for dialog */
+  color: white;
+  padding: 25px;
+  border-radius: 8px;
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.5);
+  width: 500px; /* Or max-width, adjust as needed */
+  max-width: 90%;
+  position: relative; /* For positioning the close button */
+  display: flex;
+  flex-direction: column;
+}
+
+.dialog-content h2 {
+  margin-top: 0;
+  margin-bottom: 15px;
+  font-size: 1.4em;
+  border-bottom: 1px solid #444;
+  padding-bottom: 10px;
+}
+
+.dialog-content p {
+  margin-bottom: 20px;
+  line-height: 1.6;
+}
+
+.dialog-close-button {
+  position: absolute;
+  top: 15px;
+  right: 15px;
+  background: none;
+  border: none;
+  color: #aaa; /* Lighter color for close icon */
+  font-size: 1.8rem; /* Larger icon */
+  cursor: pointer;
+  padding: 5px; /* Add some padding for easier clicking */
+  line-height: 1;
+}
+
+.dialog-close-button:hover {
+  color: #fff; /* White on hover */
 }
