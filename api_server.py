@@ -227,15 +227,31 @@ async def post_message_gemini(payload: MessageRequest):
         if not GEMINI_API_KEY:
             raise ValueError("GEMINI_API_KEY not found in environment variables. Please set it in your .env file or environment.")
         genai.configure(api_key=GEMINI_API_KEY)
-        # ★ Geminiモデルに感情表現（喜怒哀楽）を含めるよう指示を追加
         model = genai.GenerativeModel("gemini-1.5-flash")
-        # --- ここから回答の分量・感情表現を増やすプロンプトを追加 ---
-        # Geminiに「3行以上、できるだけ詳しく、具体例や理由も含めて説明してください」に加え、
-        # 「回答には基本的に喜怒哀楽などの感情表現を含めてください」と指示を追加
-        system_prompt += "\n\n【制約】\n- 回答は必ず3行以上にしてください。\n- できるだけ詳しく、具体例や理由も含めて説明してください。\n- 箇条書きや段落を使って、読みやすくしてください。\n- 回答には基本的に喜怒哀楽などの感情表現を含めてください。"
+        
+        # Updated system prompt to request JSON for tables
+        system_prompt += """
+
+【制約】
+- 回答は必ず3行以上にしてください。
+- できるだけ詳しく、具体例や理由も含めて説明してください。
+- 箇条書きや段落を使って、読みやすくしてください。
+- 回答には基本的に喜怒哀楽などの感情表現を含めてください。
+- 表で表現した方がわかりやすい場合は、その表データをJSON形式で、次の構造で出力してください: ```json
+{
+  "is_table": true,
+  "type": "table_data",
+  "data": {
+    "headers": ["ヘッダー1", "ヘッダー2"],
+    "rows": [
+      ["行1セル1", "行1セル2"],
+      ["行2セル1", "行2セル2"]
+    ]
+  }
+}
+``` このJSON構造を回答のメインコンテンツとしてください。他のテキストは含めないでください。"""
 
         response = model.generate_content(system_prompt)
-        
         ai_text = response.text
         
         # フロントエンドへのレスポンス形式を統一
@@ -255,7 +271,6 @@ async def post_message_gemini(payload: MessageRequest):
         if results["documents"] and results["documents"][0]:
             # RAG was successful
             current_video_id = "iRJvKaCGPl0" # ★ 変更: 新しいテスト動画ID
-            # YouTube動画タイトル取得は実装しない
             # ★★★ 修正: RAGが成功しても字幕データは取得しない ★★★
             actual_transcript_data = [] # 字幕データは取得せず空リスト
             print("--- RAG: Success, but transcript fetch is skipped as per new requirement ---")
@@ -264,18 +279,6 @@ async def post_message_gemini(payload: MessageRequest):
                 "content": ai_text,
                 "videoId": current_video_id,
                 "transcript": actual_transcript_data, # 空リストを返す
-                "videoTitle": "" # 動画タイトル取得は実装しない
-            }
-        else:
-            # RAG failed, Gemini direct answer
-            current_video_id = "dQw4w9WgXcQ" # Fallback dummy video ID
-            # YouTube動画タイトル取得は実装しない
-            actual_transcript_data = [] # ★ 変更: RAG失敗時も空リスト
-            return {
-                "role": "assistant",
-                "content": ai_text,
-                "videoId": current_video_id,
-                "transcript": actual_transcript_data, # ★ 変更: 空リストを返す
                 "videoTitle": "" # 動画タイトル取得は実装しない
             }
 

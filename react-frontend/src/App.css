@@ -410,3 +410,27 @@
   overflow-y: auto;
   line-height: 1.7;
 }
+
+/* テーブル表示用コンポーネントのスタイル */
+.table-container {
+  margin-top: 10px;
+  overflow-x: auto; /* テーブルが横に長い場合にスクロールできるように */
+}
+
+.table-container table {
+  width: 100%;
+  border-collapse: collapse; /* ボーダーを重ねる */
+  font-size: 0.85em; /* 文字を小さくする */
+}
+
+.table-container th,
+.table-container td {
+  border: 1px solid #ddd; /* 細い線を設定 */
+  padding: 6px; /* 少しパディングを調整 */
+  text-align: left;
+}
+
+.table-container th {
+  background-color: #f2f2f2; /* ヘッダーの背景色 */
+  color: #000; /* ヘッダーの文字色を黒に設定 */
+}
