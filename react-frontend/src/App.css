@@ -102,6 +102,8 @@
   /* ★ スクロールバーのスタイル (Firefox) */
   scrollbar-width: thin;
   scrollbar-color: #555 #222; /* サムの色 トラックの色 */
+  overflow-x: hidden; /* 横スクロール禁止 */
+  padding-right: 48px; /* 評価アイコン分の余白を確保 */
 }
 
 /* ★ スクロールバーのスタイル (Webkit系ブラウザ: Chrome, Edge, Safari) */
@@ -138,6 +140,19 @@
 
 .message-container.assistant {
   flex-direction: row; /* アシスタントはアイコンを左に */
+  align-items: flex-end;
+  position: relative; /* 評価アイコン絶対配置の基準 */
+  overflow: visible; /* 評価アイコンがはみ出しても隠さない */
+}
+
+.message-container.assistant .rating-icons-outside {
+  position: absolute;
+  right: 8px; /* 見切れないように内側に配置 */
+  bottom: 0;
+  margin-left: 0; /* 既存のmargin-leftは不要 */
+  display: flex;
+  gap: 8px;
+  align-items: center;
 }
 
 /* ★ 追加: アバター（アイコン）のスタイル */
@@ -157,6 +172,7 @@
   word-wrap: break-word; /* 長い単語の折り返し */
   /* align-self は message-container の flex-direction で制御 */
   /* margin-left/right は avatar との兼ね合いで調整 */
+  display: block; /* 吹き出しのレイアウトを元に戻す */
 }
 
 .message-container.user .msg { /* ★ 変更: セレクタを具体的に */
@@ -197,6 +213,76 @@
   border-width: 0 0 10px 15px; /* しっぽの形 (三角形) */
   border-color: transparent transparent #444950 transparent; /* しっぽの色 */
   transform: translateY(-1px); /* 微調整 */
+}
+
+.message-container.assistant.thinking .msg.thinking-bubble {
+  background: #444950;
+  color: #fff;
+  font-style: italic;
+  opacity: 0.8;
+  min-width: 48px;
+  min-height: 1.5em;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  animation: pulseThinking 1.2s infinite;
+}
+
+@keyframes pulseThinking {
+  0% { opacity: 0.7; }
+  50% { opacity: 1; }
+  100% { opacity: 0.7; }
+}
+
+.thinking-dots {
+  font-size: 1.3em;
+  letter-spacing: 2px;
+  animation: blinkDots 1.2s infinite;
+}
+
+@keyframes blinkDots {
+  0% { opacity: 0.7; }
+  50% { opacity: 1; }
+  100% { opacity: 0.7; }
+}
+
+.rating-icons {
+  display: none;
+}
+
+.rating-icons-outside {
+  display: flex;
+  gap: 8px;
+  margin-left: 8px;
+  align-items: center;
+  position: absolute;
+  right: 8px; /* 見切れないように内側に配置 */
+  bottom: 0;
+  margin-left: 0;
+  display: flex;
+  gap: 4px;
+  background: transparent;
+  z-index: 1;
+  pointer-events: auto;
+}
+
+/* スマホや狭い画面で評価アイコンがはみ出しすぎないように調整 */
+@media (max-width: 600px) {
+  .rating-icons-outside {
+    right: 4px;
+  }
+  .chat-history {
+    padding-right: 32px;
+  }
+}
+
+.thumb-icon {
+  cursor: pointer;
+  color: #bbb;
+  transition: color 0.2s;
+}
+.thumb-icon:hover {
+  color: #2196f3;
 }
 
 .chat-input {

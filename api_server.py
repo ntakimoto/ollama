@@ -200,8 +200,13 @@ async def post_message_gemini(payload: MessageRequest):
         if not GEMINI_API_KEY:
             raise ValueError("GEMINI_API_KEY not found in environment variables. Please set it in your .env file or environment.")
         genai.configure(api_key=GEMINI_API_KEY)
-        model = genai.GenerativeModel("gemini-1.5-flash") # モデル名を更新
-        
+        # ★ Geminiモデルに感情表現（喜怒哀楽）を含めるよう指示を追加
+        model = genai.GenerativeModel("gemini-1.5-flash")
+        # --- ここから回答の分量・感情表現を増やすプロンプトを追加 ---
+        # Geminiに「3行以上、できるだけ詳しく、具体例や理由も含めて説明してください」に加え、
+        # 「回答には基本的に喜怒哀楽などの感情表現を含めてください」と指示を追加
+        system_prompt += "\n\n【制約】\n- 回答は必ず3行以上にしてください。\n- できるだけ詳しく、具体例や理由も含めて説明してください。\n- 箇条書きや段落を使って、読みやすくしてください。\n- 回答には基本的に喜怒哀楽などの感情表現を含めてください。"
+
         response = model.generate_content(system_prompt)
         
         ai_text = response.text

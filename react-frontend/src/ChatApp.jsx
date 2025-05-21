@@ -6,37 +6,67 @@ import UploadFileIcon from '@mui/icons-material/UploadFile';
 import SendIcon from '@mui/icons-material/Send'; // ★ 追加
 import PersonIcon from '@mui/icons-material/Person'; // ★ 追加 (ユーザーアバター用)
 import SmartToyIcon from '@mui/icons-material/SmartToy'; // ★ 追加 (アシスタントアバター用)
+import ThumbUpAltOutlinedIcon from '@mui/icons-material/ThumbUpAltOutlined'; // ★ 追加: 評価アイコン
+import ThumbDownAltOutlinedIcon from '@mui/icons-material/ThumbDownAltOutlined'; // ★ 追加: 評価アイコン
 import "./App.css";
 
 // 既存のコンポーネントは省略
 
-function ChatHistory({ messages, onDeleteMessage }) { // ★ 追加: onDeleteMessage prop
+function ChatHistory({ messages, onDeleteMessage, isThinking, thinkingDots }) { // ★ 追加: onDeleteMessage, isThinking, thinkingDots prop
   const bottomRef = useRef(null);
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages]);
+  }, [messages, isThinking, thinkingDots]);
+  // 最新のアシスタント回答のインデックスを取得
+  const lastAssistantIdx = (() => {
+    for (let i = messages.length - 1; i >= 0; i--) {
+      if (messages[i].role === "assistant") return i;
+    }
+    return -1;
+  })();
   return (
     <div className="chat-history">
-      {messages.map((msg, idx) => (
-        <div key={idx} className={`message-container ${msg.role}`}> {/* ★ 変更: message-container を追加し、roleクラスを付与 */}
-          <div className="avatar">
-            {msg.role === "user" ? <PersonIcon fontSize="inherit" /> : <SmartToyIcon fontSize="inherit" />} {/* ★ 変更: MUIアイコンを使用 */}
-          </div> {/* ★ 追加: アイコン用のdiv */}
-          <div className={"msg"}> {/* ★ 変更: roleクラスを削除 */}
-            <ReactMarkdown>{Array.isArray(msg.content) ? msg.content[0]?.text : msg.content}</ReactMarkdown> {/* ★ 変更: ReactMarkdown を使用 */}
+      {messages.map((msg, idx) => {
+        const showRating = msg.role === "assistant" && idx === lastAssistantIdx;
+        return (
+          <div key={idx} className={`message-container ${msg.role}` + (showRating ? ' with-rating' : '')}> {/* ★ 変更: message-container を追加し、roleクラスを付与 */}
+            <div className="avatar">
+              {msg.role === "user" ? <PersonIcon fontSize="inherit" /> : <SmartToyIcon fontSize="inherit" />} {/* ★ 変更: MUIアイコンを使用 */}
+            </div> {/* ★ 追加: アイコン用のdiv */}
+            {/* ★ 評価アイコンを吹き出しの外側（右）に表示 */}
+            {showRating && (
+              <div className="rating-icons-outside">
+                <ThumbUpAltOutlinedIcon className="thumb-icon" fontSize="small" titleAccess="良い" />
+                <ThumbDownAltOutlinedIcon className="thumb-icon" fontSize="small" titleAccess="悪い" />
+              </div>
+            )}
+            <div className={"msg"}> {/* ★ 変更: roleクラスを削除 */}
+              <ReactMarkdown>{Array.isArray(msg.content) ? msg.content[0]?.text : msg.content}</ReactMarkdown> {/* ★ 変更: ReactMarkdown を使用 */}
+            </div>
+            {/* ★ 追加: ユーザーメッセージに削除ボタンを追加 */} 
+            {msg.role === "user" && (
+              <button 
+                onClick={() => onDeleteMessage(idx)} 
+                className="delete-button"
+                title="Delete this message and its response"
+              >
+                🗑️
+              </button>
+            )}
           </div>
-          {/* ★ 追加: ユーザーメッセージに削除ボタンを追加 */} 
-          {msg.role === "user" && (
-            <button 
-              onClick={() => onDeleteMessage(idx)} 
-              className="delete-button"
-              title="Delete this message and its response"
-            >
-              🗑️
-            </button>
-          )}
+        );
+      })}
+      {/* AI思考中アニメーション */}
+      {isThinking && (
+        <div className="message-container assistant thinking">
+          <div className="avatar">
+            <SmartToyIcon fontSize="inherit" />
+          </div>
+          <div className="msg thinking-bubble">
+            <span className="thinking-dots">{thinkingDots}</span>
+          </div>
         </div>
-      ))}
+      )}
       <div ref={bottomRef} />
     </div>
   );
@@ -130,6 +160,21 @@ export default function ChatApp() {
   const playerRef = useRef(null); // YouTubeプレーヤーの参照用
   const [videoTitle, setVideoTitle] = useState(TEST_VIDEO_TITLE); // ★ 初期値をテスト用に
   const [isSidebarOpen, setIsSidebarOpen] = useState(false); // ★ 追加: サイドバーの開閉状態
+  // --- 追加: AI思考中アニメーション用 ---
+  const [isThinking, setIsThinking] = useState(false);
+  const [thinkingDots, setThinkingDots] = useState('…');
+
+  // ドットアニメーション
+  useEffect(() => {
+    if (!isThinking) return;
+    let dotsArr = ['…', '……', '………'];
+    let i = 0;
+    const interval = setInterval(() => {
+      setThinkingDots(dotsArr[i % dotsArr.length]);
+      i++;
+    }, 500);
+    return () => clearInterval(interval);
+  }, [isThinking]);
 
   // ★ 追加: サイドバー開閉ハンドラ
   const toggleSidebar = () => {
@@ -138,10 +183,12 @@ export default function ChatApp() {
 
   // 初回チャット履歴取得
   useEffect(() => {
+    setIsThinking(true);
     fetch("/api/messages") // Changed from /api/messages/gemini
       .then(res => res.json())
       .then(setMessages)
-      .catch(() => setMessages([]));
+      .catch(() => setMessages([]))
+      .finally(() => setIsThinking(false));
   }, []);
 
   // メッセージ送信
@@ -150,6 +197,7 @@ export default function ChatApp() {
     const newMsg = { role: "user", content: input };
     setMessages(msgs => [...msgs, newMsg]);
     setInput("");
+    setIsThinking(true);
     const res = await fetch("/api/messages/gemini", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -157,6 +205,7 @@ export default function ChatApp() {
     });
     const data = await res.json();
     setMessages(msgs => [...msgs, data]);
+    setIsThinking(false);
 
     // ★ 送信時は動画・トランスクリプトを変更しない（初期表示のまま）
     // if (data.videoId) {
@@ -274,7 +323,7 @@ export default function ChatApp() {
       <div className="main-content"> {/* ★ メインコンテンツをラップするdivを追加 */}
         <div className="container">
           <div className="left">
-            <ChatHistory messages={messages} onDeleteMessage={handleDeleteMessage} />
+            <ChatHistory messages={messages} onDeleteMessage={handleDeleteMessage} isThinking={isThinking} thinkingDots={thinkingDots} />
             <ChatInput value={input} onChange={setInput} onSend={handleSend} />
           </div>
           <div className="right">
