@@ -225,24 +225,13 @@ async def post_message_gemini(payload: MessageRequest):
             )
             print("--- RAG: No related content found, using general knowledge ---")
 
-        # --- Gemini API呼び出し ---
-        import google.generativeai as genai
-        # APIキーの設定は環境変数などから読み込むのがより安全ですが、ここでは既存のコードを尊重します。
-        GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
-        if not GEMINI_API_KEY:
-            raise ValueError("GEMINI_API_KEY not found in environment variables. Please set it in your .env file or environment.")
-        genai.configure(api_key=GEMINI_API_KEY)
-        model = genai.GenerativeModel("gemini-1.5-flash")
-        
         # Updated system prompt to request JSON for tables
         system_prompt += """
-
-【制約】
 - 回答は必ず3行以上にしてください。
 - できるだけ詳しく、具体例や理由も含めて説明してください。
 - 箇条書きや段落を使って、読みやすくしてください。
 - 回答には基本的に喜怒哀楽などの感情表現を含めてください。
-- 表で表現した方がわかりやすい場合は、その表データをJSON形式で、次の構造で出力してください: ```json
+- 表データをJSON形式で、次の構造で出力してください: ```json
 {
   "is_table": true,
   "type": "table_data",
@@ -255,7 +244,14 @@ async def post_message_gemini(payload: MessageRequest):
   }
 }
 ``` このJSON構造を回答のメインコンテンツにしない。JSON構造は表で返答する時のみです。"""
-
+        # --- Gemini API呼び出し ---
+        import google.generativeai as genai
+        # APIキーの設定は環境変数などから読み込むのがより安全ですが、ここでは既存のコードを尊重します。
+        GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
+        if not GEMINI_API_KEY:
+            raise ValueError("GEMINI_API_KEY not found in environment variables. Please set it in your .env file or environment.")
+        genai.configure(api_key=GEMINI_API_KEY)
+        model = genai.GenerativeModel("gemini-1.5-flash")
         response = model.generate_content(system_prompt)
         ai_text = response.text
         
@@ -295,6 +291,7 @@ async def post_message_gemini(payload: MessageRequest):
         traceback.print_exc()
         raise HTTPException(status_code=500, detail=f"Internal server error: {e}")
 
+# FIXME: 取得に失敗した場合の処理を追加する
 @app.get("/api/messages/transcript/{video_id}")
 def get_transcript(video_id: str):
     print(f"--- get_transcript called for video_id: {video_id} ---")
@@ -315,4 +312,4 @@ def get_transcript(video_id: str):
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8001) # ポートを8001に変更
+    uvicorn.run(app, host="0.0.0.0", port=8001)

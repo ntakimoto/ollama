@@ -15,8 +15,7 @@ import Button from '@mui/material/Button'; // ★ ADDED: MUI Button for file upl
 import { useReactTable, getCoreRowModel, flexRender } from '@tanstack/react-table';
 import "./App.css";
 
-// 既存のコンポーネントは省略
-
+// TODO: リファクタリングする
 // テーブル表示用コンポーネント
 function JsonTable({ data }) {
   const columns = React.useMemo(() => {
@@ -72,7 +71,6 @@ function JsonTable({ data }) {
   );
 }
 
-// ★ 変更: messages propにデフォルト値([])を設定
 function ChatHistory({ messages = [], onDeleteMessage, isThinking, thinkingDots }) {
   const bottomRef = useRef(null);
   useEffect(() => {
@@ -211,7 +209,8 @@ function ChatInput({ value, onChange, onSend }) {
   );
 }
 
-function YouTubePanel({ videoId }) {
+// TODO: リファクタリングする
+function YouTubePanel({ videoId }) { 
   if (!videoId) {
     return <div className="youtube-panel-placeholder">YouTube動画プレーヤー</div>;
   }
@@ -232,6 +231,7 @@ function YouTubePanel({ videoId }) {
   );
 }
 
+// TODO: リファクタリングする
 function TranscriptPanel({ text, currentTime, isLoading, error }) { // ★ MODIFIED: Added isLoading, error props
   const transcriptLines = useMemo(() => (Array.isArray(text) ? text : []), [text]);
   // const currentLineRef = useRef(null); // REMOVED: This ref was for the old single-block structure
