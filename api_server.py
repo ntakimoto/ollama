@@ -8,6 +8,8 @@ from pydantic import BaseModel
 from dotenv import load_dotenv # Add this import
 from youtube_transcript_api import YouTubeTranscriptApi, TranscriptsDisabled, NoTranscriptFound # Add this import
 from pytube import YouTube # Add this import
+import subprocess # ★ 追加: サブプロセス実行のため
+import sys # ★ 追加: Python実行可能ファイルのパス取得のため
 
 # +++ ADDED FOR IMAGE ILLUSTRATION +++
 from PIL import Image
@@ -15,6 +17,7 @@ import base64
 # +++ END ADDED FOR IMAGE ILLUSTRATION +++
 
 CHAT_HISTORY_FILE = "chat_history.json"
+SAVE_RESPONSES_SCRIPT_PATH = "c:\\\\work\\\\ollama\\\\save_responses_to_chroma.py" # ★ 追加: スクリプトパス
 
 # Load environment variables from .env file
 load_dotenv()
@@ -29,6 +32,22 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# ★ 追加: FastAPI起動時にsave_responses_to_chroma.pyを起動するイベントハンドラ
+@app.on_event("startup")
+async def startup_event():
+    print(f"--- Starting background script: {SAVE_RESPONSES_SCRIPT_PATH} ---")
+    try:
+        # Python実行可能ファイルのパスを取得し、スクリプトをバックグラウンドで実行
+        # CREATE_NEW_CONSOLEフラグで新しいコンソールウィンドウで実行 (Windows用)
+        # subprocess.CREATE_NO_WINDOW を使うとコンソールなしで実行可能だが、デバッグが難しくなる場合がある
+        subprocess.Popen([sys.executable, SAVE_RESPONSES_SCRIPT_PATH], creationflags=subprocess.CREATE_NEW_CONSOLE)
+        print(f"--- Successfully started {SAVE_RESPONSES_SCRIPT_PATH} in a new console ---")
+    except FileNotFoundError:
+        print(f"!!! ERROR: Could not find Python executable at {sys.executable} or script at {SAVE_RESPONSES_SCRIPT_PATH}")
+    except Exception as e:
+        print(f"!!! ERROR: Failed to start {SAVE_RESPONSES_SCRIPT_PATH}: {e}")
+        traceback.print_exc()
 
 def load_chat_history() -> List[Dict]:
     if os.path.exists(CHAT_HISTORY_FILE):
@@ -260,6 +279,19 @@ async def post_message_gemini(payload: MessageRequest):
         
         # チャット履歴への保存用 (videoIdやtranscriptは含めない)
         messages.append({"role": "assistant", "content": ai_text }) # Ensure content is just the text for history
+
+        # --- ADDED: Append appropriate AI response to validated_responses.txt ---
+        # ここでは、Geminiからの応答(ai_text)は「適切」であると仮定します。
+        # 必要に応じて、ここに「適切性」を判断する条件分岐を追加してください。
+        try:
+            with open("validated_responses.txt", "a", encoding="utf-8") as f_validated:
+                f_validated.write(ai_text.strip() + "\n") # 各応答を新しい行に追記
+            print("--- Successfully appended to validated_responses.txt ---")
+        except Exception as e_write_validated:
+            print(f"!!! FAILED to append to validated_responses.txt: {e_write_validated}")
+            traceback.print_exc() # エラーの詳細を出力
+        # --- END ADDED ---
+
         print("Saving chat history...")
         save_chat_history(messages)
         
