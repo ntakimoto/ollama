@@ -309,34 +309,17 @@ function TranscriptPanel({ text, currentTime, isLoading, error }) { // ★ MODIF
 const TEST_VIDEO_ID = "iRJvKaCGPl0";
 const TEST_TRANSCRIPT = [];
 
-// ★ MODIFIED: テスト用のYouTube動画データをマンガ創作コンテンツに変更
+// ★ MODIFIED: テスト用のYouTube動画データを再生可能で字幕があるものに変更
 const mockYouTubeVideos = [
-  { id: "iRJvKaCGPl0", title: "【プロ漫画家】背景の描き方講座！パースなんて怖くない！", thumbnailUrl: "https://img.youtube.com/vi/iRJvKaCGPl0/hqdefault.jpg" },
-  { id: "Qw4nVbQ1n9w", title: "【初心者向け】魅力的なキャラクターデザインのコツ５選", thumbnailUrl: "https://img.youtube.com/vi/Qw4nVbQ1n9w/hqdefault.jpg" },
-  { id: "3kQ1J2Qw9nA", title: "漫画のコマ割り教室！読者を惹きつける画面構成とは？", thumbnailUrl: "https://img.youtube.com/vi/3kQ1J2Qw9nA/hqdefault.jpg" },
-  { id: "2lQ1J2Qw9nB", title: "【デジタル作画】Clip Studio Paint基本操作ガイド", thumbnailUrl: "https://img.youtube.com/vi/2lQ1J2Qw9nB/hqdefault.jpg" },
-  { id: "4mQ1J2Qw9nC", title: "ストーリー漫画の作り方：プロットからネームまで徹底解説", thumbnailUrl: "https://img.youtube.com/vi/4mQ1J2Qw9nC/hqdefault.jpg" },
-  { id: "5nQ1J2Qw9nD", title: "【漫画家志望者必見】持ち込みで編集者に見られるポイント", thumbnailUrl: "https://img.youtube.com/vi/5nQ1J2Qw9nD/hqdefault.jpg" },
-  { id: "6oQ1J2Qw9nE", title: "簡単！ちびキャラ・SDキャラの描き方", thumbnailUrl: "https://img.youtube.com/vi/6oQ1J2Qw9nE/hqdefault.jpg" },
-  { id: "7pQ1J2Qw9nF", title: "【アナログ作画】Gペン・丸ペンの使い方と練習法", thumbnailUrl: "https://img.youtube.com/vi/7pQ1J2Qw9nF/hqdefault.jpg" },
-  { id: "8qQ1J2Qw9nG", title: "漫画のセリフ作成術！キャラが生き生きと喋り出す秘訣", thumbnailUrl: "https://img.youtube.com/vi/8qQ1J2Qw9nG/hqdefault.jpg" },
-  { id: "9rQ1J2Qw9nH", title: "【背景時短】写真から漫画背景を制作する方法", thumbnailUrl: "https://img.youtube.com/vi/9rQ1J2Qw9nH/hqdefault.jpg" },
-  { id: "0sQ1J2Qw9nI", title: "漫画家の一日ルーティン！リアルな仕事現場を公開", thumbnailUrl: "https://img.youtube.com/vi/0sQ1J2Qw9nI/hqdefault.jpg" },
-  { id: "1tQ1J2Qw9nJ", title: "【イラスト添削】あなたの絵が劇的に変わるアドバイス！", thumbnailUrl: "https://img.youtube.com/vi/1tQ1J2Qw9nJ/hqdefault.jpg" },
-  { id: "2uQ1J2Qw9nK", title: "漫画のカラーイラスト講座：色の選び方と塗り方", thumbnailUrl: "https://img.youtube.com/vi/2uQ1J2Qw9nK/hqdefault.jpg" },
-  { id: "3vQ1J2Qw9nL", title: "【同人誌制作】印刷所選びから入稿までの流れ", thumbnailUrl: "https://img.youtube.com/vi/3vQ1J2Qw9nL/hqdefault.jpg" },
-  { id: "4wQ1J2Qw9nM", title: "漫画の効果線・集中線の描き方バリエーション", thumbnailUrl: "https://img.youtube.com/vi/4wQ1J2Qw9nM/hqdefault.jpg" },
-  { id: "5xQ1J2Qw9nN", title: "【プロアシスタント】背景作画のスピードアップ術", thumbnailUrl: "https://img.youtube.com/vi/5xQ1J2Qw9nN/hqdefault.jpg" },
-  { id: "6yQ1J2Qw9nO", title: "魅力的な表情の描き分け講座：喜怒哀楽を表現する", thumbnailUrl: "https://img.youtube.com/vi/6yQ1J2Qw9nO/hqdefault.jpg" },
-  { id: "7zQ1J2Qw9nP", title: "【漫画賞】受賞するための作品作り戦略", thumbnailUrl: "https://img.youtube.com/vi/7zQ1J2Qw9nP/hqdefault.jpg" },
-  { id: "8aQ1J2Qw9nQ", title: "ファンタジー世界の武器・防具デザインのアイデア", thumbnailUrl: "https://img.youtube.com/vi/8aQ1J2Qw9nQ/hqdefault.jpg" },
-  { id: "9bQ1J2Qw9nR", title: "漫画家デビューへの道：体験談とアドバイス", thumbnailUrl: "https://img.youtube.com/vi/9bQ1J2Qw9nR/hqdefault.jpg" },
+  { id: "LHFiGPb-Bp8", title: "ガイダンス編", thumbnailUrl: "https://img.youtube.com/vi/LHFiGPb-Bp8/hqdefault.jpg" },
+  { id: "gpemT3xIYG0", title: "第1回 〜この教科書の課題〜", thumbnailUrl: "https://img.youtube.com/vi/gpemT3xIYG0/hqdefault.jpg" },
+
 ];
 
 export default function ChatApp() {
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState("");
-  const [videoId] = useState(TEST_VIDEO_ID);
+  const [videoId, setVideoId] = useState(TEST_VIDEO_ID);
   const [transcript, setTranscript] = useState(TEST_TRANSCRIPT);
   const [currentVideoTime] = useState(0); // setCurrentVideoTime削除
   const [isSidebarOpen, setIsSidebarOpen] = useState(false); // ★ 追加: サイドバーの開閉状態
@@ -357,6 +340,7 @@ export default function ChatApp() {
   const isResizingRef = useRef(false);
   const initialMouseXRef = useRef(0);
   const initialWidthRef = useRef(0);
+  const [videoSearchTerm, setVideoSearchTerm] = useState(""); // ★ 追加: 動画検索キーワード
 
   // ドラッグ開始
   const handleMouseDownOnDivider = (e) => {
@@ -413,35 +397,45 @@ export default function ChatApp() {
 
   // ★ 初期表示時に字幕全文を取得 (with retry logic)
   useEffect(() => {
-    async function fetchInitialTranscriptWithRetries() {
+    async function fetchTranscriptForVideo(currentVideoId) {
+      if (!currentVideoId) {
+        setTranscript([]);
+        setIsTranscriptLoading(false);
+        setTranscriptError(null);
+        console.log("No video ID provided, clearing transcript.");
+        return;
+      }
+
+      console.log(`Fetching transcript for video ID: ${currentVideoId}`);
       setIsTranscriptLoading(true);
       setTranscriptError(null);
-      // setTranscript(TEST_TRANSCRIPT); // Initial state is already TEST_TRANSCRIPT (empty array)
+      setTranscript(TEST_TRANSCRIPT); // Clear previous transcript
 
       const maxRetries = 3;
       const retryDelay = 2000; // 2 seconds
 
       for (let attempt = 1; attempt <= maxRetries; attempt++) {
         try {
-          const res = await fetch(`/api/messages/transcript/${TEST_VIDEO_ID}`);
+          // ★ MODIFIED: Use currentVideoId in the fetch URL
+          const res = await fetch(`/api/messages/transcript/${currentVideoId}`);
           if (res.ok) {
             const data = await res.json();
+            console.log(`Transcript data received for ${currentVideoId}:`, data);
             setTranscript(Array.isArray(data.transcript) ? data.transcript : []);
             setTranscriptError(null);
             setIsTranscriptLoading(false);
             return; // Success, exit function
           }
-          // Handle non-OK response
           const errorText = await res.text().catch(() => "Could not parse error response.");
           if (attempt === maxRetries) {
-            console.error(`Failed to fetch transcript after ${maxRetries} attempts. Status: ${res.status}, Response: ${errorText}`);
+            console.error(`Failed to fetch transcript for ${currentVideoId} after ${maxRetries} attempts. Status: ${res.status}, Response: ${errorText}`);
             setTranscriptError(`Failed to load transcript (Status: ${res.status}).`);
             setTranscript([]);
           } else {
-            console.warn(`Attempt ${attempt} failed to fetch transcript. Status: ${res.status}. Retrying in ${retryDelay / 1000}s...`);
+            console.warn(`Attempt ${attempt} failed for ${currentVideoId}. Status: ${res.status}. Retrying in ${retryDelay / 1000}s...`);
           }
         } catch (e) {
-          console.error(`Attempt ${attempt} - Error fetching transcript:`, e);
+          console.error(`Attempt ${attempt} - Error fetching transcript for ${currentVideoId}:`, e);
           if (attempt === maxRetries) {
             setTranscriptError("Failed to load transcript due to a network or parsing error.");
             setTranscript([]);
@@ -455,8 +449,8 @@ export default function ChatApp() {
       }
       setIsTranscriptLoading(false); // Ensure loading is set to false after all attempts
     }
-    fetchInitialTranscriptWithRetries();
-  }, []); // Empty dependency array to run once on mount, as TEST_VIDEO_ID is const
+    fetchTranscriptForVideo(videoId);
+  }, [videoId]); // ★ MODIFIED: Dependency array now includes videoId
 
   // ★ 追加: サイドバー開閉ハンドラ
   const toggleSidebar = () => {
@@ -522,6 +516,23 @@ export default function ChatApp() {
     // For now, just close the dialog and log
     toggleFileUploadDialog();
   };
+
+  // ★ ADDED: Function to handle video selection from sidebar
+  const handleVideoSelect = (newVideoId) => {
+    setVideoId(newVideoId);
+    setIsSidebarOpen(false);
+    // Transcript fetching will be handled by the useEffect hook below
+  };
+
+  // ★ 追加: フィルタリングされた動画リスト
+  const filteredYouTubeVideos = useMemo(() => {
+    if (!videoSearchTerm) {
+      return mockYouTubeVideos;
+    }
+    return mockYouTubeVideos.filter(video =>
+      video.title.toLowerCase().includes(videoSearchTerm.toLowerCase())
+    );
+  }, [videoSearchTerm]);
 
   // 初回チャット履歴取得
   useEffect(() => {
@@ -645,14 +656,21 @@ export default function ChatApp() {
         <div className="sidebar">
           {/* サイドバーのコンテンツはここに */}
           <div className="sidebar-header"> {/* ★ ADDED: Header for title and close button */}
-            <h2>関連動画</h2>
+            {/* ★ 変更: 「関連動画」を検索ボックスに置き換え */}
+            <input
+              type="text"
+              placeholder="動画を検索..."
+              value={videoSearchTerm}
+              onChange={(e) => setVideoSearchTerm(e.target.value)}
+              className="video-search-input" // CSSでスタイル調整用
+            />
             <button onClick={toggleSidebar} className="sidebar-close-button-icon"> {/* ★ MODIFIED: ClassName and content */}
               <CloseIcon fontSize="inherit" />
             </button>
           </div>
           <ul className="youtube-video-list">
-            {mockYouTubeVideos.map(video => (
-              <li key={video.id} className="youtube-video-item">
+            {filteredYouTubeVideos.map(video => (
+              <li key={video.id} className="youtube-video-item" onClick={() => handleVideoSelect(video.id)}>
                 <img src={video.thumbnailUrl} alt={video.title} className="youtube-thumbnail" />
                 <div className="video-info">
                   <p className="video-title">{video.title}</p>

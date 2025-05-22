@@ -737,3 +737,136 @@
 .column-divider:hover {
   background-color: #3a3f47; /* 背景色に合わせたホバー色 */
 }
+
+/* ★ ADDED: Sidebar Styles */
+.sidebar-toggle-button {
+  position: fixed;
+  top: 10px;
+  left: 10px;
+  z-index: 1001; /* Ensure it's above other content */
+  background-color: #333;
+  color: white;
+  border: none;
+  padding: 8px;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.sidebar-toggle-button:hover {
+  background-color: #555;
+}
+
+.sidebar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 560px; /* Sidebar width */
+  height: 100vh;
+  background-color: #2f3136; /* Dark background for sidebar */
+  padding: 20px;
+  box-shadow: 2px 0 5px rgba(0,0,0,0.2);
+  z-index: 1000;
+  color: #fff; /* White text color */
+  overflow-y: auto; /* Allow scrolling if content exceeds height */
+  display: flex;
+  flex-direction: column;
+}
+
+.sidebar-close-button {
+  align-self: flex-end;
+  background: none;
+  border: none;
+  color: white;
+  font-size: 1.5rem;
+  cursor: pointer;
+  margin-bottom: 10px;
+}
+
+.sidebar h3 {
+  margin-top: 0;
+  border-bottom: 1px solid #444;
+  padding-bottom: 10px;
+  margin-bottom: 15px;
+}
+
+.video-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.video-list-item {
+  display: flex;
+  align-items: center;
+  padding: 10px 5px;
+  cursor: pointer;
+  border-radius: 4px;
+  margin-bottom: 8px;
+  transition: background-color 0.2s ease;
+}
+
+.video-list-item:hover {
+  background-color: #3a3d42;
+}
+
+.video-thumbnail {
+  width: 80px; /* Thumbnail size */
+  height: 45px;
+  object-fit: cover;
+  border-radius: 4px;
+  margin-right: 10px;
+  border: 1px solid #444;
+}
+
+.video-title {
+  font-size: 0.9em;
+  flex-grow: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ...rest of the existing App.css... */
+.transcript-panel {
+  /* ...existing styles... */
+  color: #fff; /* Change text color to white */
+  background: #282c34; /* Ensure background matches right column */
+}
+
+.transcript-list {
+  /* ...existing styles... */
+  color: #fff; /* Ensure list items inherit white text color */
+  background-color: #282c34; /* Match panel background */
+  border: 1px solid #222; /* Darker border */
+}
+
+.transcript-list li {
+  /* ...existing styles... */
+  color: inherit; /* Inherit text color from parent */
+  border-bottom: 1px solid #333; /* Darker separator */
+}
+
+.transcript-line {
+  /* ...existing styles... */
+  color: #fff; /* Ensure transcript lines are white */
+  border-bottom: 1px solid #333; /* Darker separator for individual lines */
+}
+
+.transcript-empty, .transcript-loading, .transcript-error {
+  color: #ccc; /* Lighter text for these states on dark background */
+  padding: 20px;
+  text-align: center;
+  flex-grow: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.transcript-error {
+  color: #ff6b6b; /* Brighter red for errors on dark background */
+}
+
+/* Ensure the main app container allows sidebar to be fixed */
+.app-container {
+  position: relative; /* Or ensure it doesn't interfere with fixed positioning */
+}
