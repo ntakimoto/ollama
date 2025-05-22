@@ -13,6 +13,7 @@ import ThumbDownAltOutlinedIcon from '@mui/icons-material/ThumbDownAltOutlined';
 import CloseIcon from '@mui/icons-material/Close'; // ★ ADDED: Close icon for sidebar
 import Button from '@mui/material/Button'; // ★ ADDED: MUI Button for file upload
 import { useReactTable, getCoreRowModel, flexRender } from '@tanstack/react-table';
+import { jwtDecode } from 'jwt-decode'; // ★ MODIFIED: Corrected import for jwt-decode (named import)
 import "./App.css";
 
 // TODO: リファクタリングする
@@ -325,6 +326,9 @@ export default function ChatApp() {
   // --- ADDED: Dialog states ---
   const [isFileUploadDialogOpen, setIsFileUploadDialogOpen] = useState(false);
   const [isUserDialogOpen, setIsUserDialogOpen] = useState(false);
+  const [isLoggedIn, setIsLoggedIn] = useState(false); // ★ 追加: ログイン状態
+  const [userProfile, setUserProfile] = useState(null); // ★ 追加: ユーザープロファイル
+  const googleSignInButtonRef = useRef(null); // ★ 追加: Google Sign-Inボタン用Ref
   // --- ADDED: Transcript loading and error states ---
   const [isTranscriptLoading, setIsTranscriptLoading] = useState(true);
   const [transcriptError, setTranscriptError] = useState(null);
@@ -453,15 +457,80 @@ export default function ChatApp() {
   };
 
   // --- ADDED: Dialog toggle functions ---
-  const toggleFileUploadDialog = () => {
-    setIsFileUploadDialogOpen(!isFileUploadDialogOpen);
+  const toggleFileUploadDialog = useCallback(() => {
+    setIsFileUploadDialogOpen(prev => !prev);
     setSelectedFile(null); // Reset file selection when dialog closes
     setFileUploadError(""); // Reset error message
-  };
+  }, [setIsFileUploadDialogOpen, setSelectedFile, setFileUploadError]);
 
-  const toggleUserDialog = () => {
-    setIsUserDialogOpen(!isUserDialogOpen);
-  };
+  const toggleUserDialog = useCallback(() => {
+    setIsUserDialogOpen(prev => !prev);
+  }, [setIsUserDialogOpen]);
+
+  // ★ 追加: Google Sign-In応答ハンドラ
+  const handleGoogleSignInResponse = useCallback((response) => {
+    console.log("Encoded JWT ID token: " + response.credential);
+    // ここでresponse.credential (JWT) をバックエンドに送信して検証し、
+    // ユーザー情報を取得または作成します。
+    // 今回はダミーでユーザー情報を設定します。
+    const decodedToken = jwtDecode(response.credential); // ★ MODIFIED: Changed jwt_decode to jwtDecode
+    
+    setIsLoggedIn(true);
+    setUserProfile({
+      name: decodedToken.name,
+      email: decodedToken.email,
+      picture: decodedToken.picture,
+    });
+    // ログイン成功後、ユーザーダイアログを閉じるなど
+    toggleUserDialog(); // ログイン後にダイアログを閉じる場合
+  }, [setIsLoggedIn, setUserProfile, toggleUserDialog]); // MODIFIED: Added dependencies
+
+  // ★ 修正: Googleログイン処理 (Google Sign-In for Websites)
+  const handleGoogleLogin = useCallback(() => {
+    const clientId = process.env.REACT_APP_GOOGLE_CLIENT_ID;
+    if (!clientId) {
+      console.error("Google Client ID is not set. Please define REACT_APP_GOOGLE_CLIENT_ID in your .env file.");
+      return;
+    }
+    if (window.google && window.google.accounts && window.google.accounts.id) {
+      window.google.accounts.id.initialize({
+        client_id: clientId, // ★ 環境変数から取得
+        callback: handleGoogleSignInResponse,
+      });
+      window.google.accounts.id.renderButton(
+        googleSignInButtonRef.current, // ★ 修正: ここでrefを使用
+        { theme: "outline", size: "large" }  // カスタマイズオプション
+      );
+      window.google.accounts.id.prompt(); // One Tapプロンプトを表示
+    } else {
+      console.error("Google Sign-In library not loaded.");
+    }
+  }, [handleGoogleSignInResponse, googleSignInButtonRef]); // MODIFIED: Added handleGoogleSignInResponse and googleSignInButtonRef to dependency array
+
+  // ★ 追加: ログアウト処理
+  const handleLogout = useCallback(() => {
+    if (window.google && window.google.accounts && window.google.accounts.id) {
+      window.google.accounts.id.disableAutoSelect();
+      // 必要に応じて window.google.accounts.id.revoke() を呼び出し、アクセストークンを無効化
+    }
+    setIsLoggedIn(false);
+    setUserProfile(null);
+    console.log("Logout successful.");
+  }, [setIsLoggedIn, setUserProfile, toggleUserDialog]);
+
+  // ★ 追加: Google Sign-Inライブラリの読み込みと初期化 (カスタムボタン用)
+  useEffect(() => {
+    // `handleGoogleLogin` が呼ばれたときに初期化とレンダリングを行うため、
+    // ここでの自動レンダリングは不要になる場合があります。
+    // もし、ダイアログ表示時に常にGoogleのボタンを表示したい場合は、
+    // isUserDialogOpen が true になったときに `renderButton` を呼び出すようにします。
+
+    // グローバルコールバック関数として登録 (index.htmlから呼び出される場合)
+    // window.handleGoogleSignInResponse = handleGoogleSignInResponse;
+    // return () => {
+    //   delete window.handleGoogleSignInResponse;
+    // };
+  }, [handleGoogleSignInResponse]);
 
   // --- ADDED: File Upload Handlers ---
   const handleFileChange = (event) => {
@@ -566,15 +635,22 @@ export default function ChatApp() {
     setMessages(msgs => [...msgs, newMsg]);
     setInput("");
     setIsThinking(true);
+    // ★ 追加: Googleログイン済みならuser情報を送信
+    let user = undefined;
+    if (isLoggedIn && userProfile) {
+      user = {
+        email: userProfile.email,
+        picture: userProfile.picture,
+      };
+    }
     const res = await fetch("/api/messages/gemini", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ message: input }),
+      body: JSON.stringify({ message: input, user }), // ★ user情報を追加
     });
     const data = await res.json();
     setMessages(msgs => [...msgs, data]);
     setIsThinking(false);
-
     // ★ 送信時は動画・トランスクリプトを変更しない（初期表示のまま）
     // if (data.videoId) {
     //   setVideoId(data.videoId);
@@ -584,7 +660,7 @@ export default function ChatApp() {
     // }
     // setCurrentVideoTime(0);
     // setVideoTitle(data.videoTitle || '');
-  }, [input, setMessages, setInput, setIsThinking]); // ★ MODIFIED: Added dependencies
+  }, [input, setMessages, setInput, setIsThinking, isLoggedIn, userProfile]); // ★ MODIFIED: Added dependencies
 
   // メッセージ削除処理
   const handleDeleteMessage = useCallback(async (userMessageIndex) => { // ★ MODIFIED: Wrapped with useCallback
@@ -718,14 +794,53 @@ export default function ChatApp() {
 
       {/* --- ADDED: User Dialog --- */}
       {isUserDialogOpen && (
-        <div className="dialog-backdrop"> {/* ★ MODIFIED: onClick removed */}
-          <div className="dialog-content" onClick={(e) => e.stopPropagation()}>
-            <h2>User Information</h2>
-            <p>This is the user information dialog.</p>
+        <div className="dialog-backdrop" onClick={toggleUserDialog}> {/* 背景クリックで閉じる */}
+          <div className="dialog-content user-dialog" onClick={(e) => e.stopPropagation()}>
             <button onClick={toggleUserDialog} className="dialog-close-button">
               <CloseIcon fontSize="inherit" />
             </button>
-            {/* Add user information or settings here */}
+            {!isLoggedIn ? (
+              <>
+                <h2>Googleアカウントでログイン</h2>
+                <p>サービスを利用するにはログインしてください。</p>
+                {/* ★ 変更: Googleのボタンをレンダリングするためのdiv、またはカスタムボタン */}
+                {/* Google提供のボタンを直接使う場合 */}
+                {/* <div id="g_id_signin_dialog"></div> */}
+                
+                {/* カスタムMUIボタンを使用し、クリック時にGoogleログイン処理を呼び出す */}
+                <Button 
+                  variant="contained" 
+                  onClick={handleGoogleLogin} 
+                  className="login-button-mui"
+                  startIcon={<AccountCircleIcon />} 
+                >
+                  Googleでログイン
+                </Button>
+                {/* Googleのライブラリがボタンをレンダリングするための非表示のコンテナ */}
+                {/* handleGoogleLogin内でこのrefにボタンをレンダリングする */}
+                <div ref={googleSignInButtonRef} style={{ display: 'none' }}></div>
+              </>
+            ) : (
+              <>
+                <h2>ユーザー情報</h2>
+                {userProfile && (
+                  <div className="user-profile-details">
+                    {userProfile.picture && 
+                      <img src={userProfile.picture} alt={userProfile.name} className="user-profile-photo" />
+                    }
+                    <p><strong>名前:</strong> {userProfile.name}</p>
+                    <p><strong>メール:</strong> {userProfile.email}</p>
+                  </div>
+                )}
+                <Button 
+                  variant="outlined" 
+                  onClick={handleLogout} 
+                  className="logout-button-mui"
+                >
+                  ログアウト
+                </Button>
+              </>
+            )}
           </div>
         </div>
       )}
