@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useMemo } from "react"; // ★ MODIFIED: Added useMemo
+import React, { useState, useEffect, useRef, useMemo, useCallback } from "react"; // ★ MODIFIED: Added useCallback
 import ReactMarkdown from 'react-markdown'; // ★ 追加
 import remarkMath from 'remark-math';
 import rehypeMathjax from 'rehype-mathjax';
@@ -71,7 +71,7 @@ function JsonTable({ data }) {
   );
 }
 
-function ChatHistory({ messages = [], onDeleteMessage, isThinking, thinkingDots }) {
+const ChatHistory = React.memo(function ChatHistory({ messages = [], onDeleteMessage, isThinking, thinkingDots }) {
   const bottomRef = useRef(null);
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -99,7 +99,7 @@ function ChatHistory({ messages = [], onDeleteMessage, isThinking, thinkingDots 
           } else if (Array.isArray(msg.content) && msg.content[0]?.text) {
             contentStr = msg.content[0].text;
           }
-          console.log("Original assistant message content string:", contentStr); 
+          //console.log("Original assistant message content string:", contentStr); 
           
           if (contentStr) {
             let potentialJson = "";
@@ -108,45 +108,41 @@ function ChatHistory({ messages = [], onDeleteMessage, isThinking, thinkingDots 
 
             if (jsonBlockMatch && jsonBlockMatch[1]) {
               potentialJson = jsonBlockMatch[1].trim();
-              console.log("Extracted from ```json block:", potentialJson);
+
             } else {
               potentialJson = contentStr.trim();
-              console.log("No ```json block detected, or regex failed. Will attempt to parse trimmed original content:", potentialJson);
             }
 
             if (potentialJson) {
               try {
                 const parsed = JSON.parse(potentialJson);
-                console.log("Parsed content:", parsed); 
                 // NEW LOGIC: Render as table if 'data.headers' and 'data.rows' exist and are arrays.
                 // This makes the data structure itself the primary condition.
                 if (parsed && parsed.data && Array.isArray(parsed.data.headers) && Array.isArray(parsed.data.rows)) {
                   contentToRender = <JsonTable data={parsed.data} />;
                   isJsonTable = true;
-                  console.log("Rendered as JSON table based on presence of parsed.data.headers and parsed.data.rows arrays.");
                 } else {
-                  console.log("Parsed JSON does not meet structural requirements for table (expected parsed.data.headers and parsed.data.rows as arrays). Will render as Markdown. Parsed object:", parsed);
                   // Detailed logging for why it's not a table under the new criteria:
-                  if (!parsed) console.log("Reason: Parsed object is null or undefined.");
-                  else if (!parsed.data) console.log("Reason: parsed.data is missing.");
-                  else {
-                    if (!Array.isArray(parsed.data.headers)) console.log("Reason: parsed.data.headers is not an array or is missing. Value:", parsed.data.headers);
-                    if (!Array.isArray(parsed.data.rows)) console.log("Reason: parsed.data.rows is not an array or is missing. Value:", parsed.data.rows);
-                  }
+                  // if (!parsed) console.log("Reason: Parsed object is null or undefined.");
+                  // else if (!parsed.data) console.log("Reason: parsed.data is missing.");
+                 //  else {
+                 //    if (!Array.isArray(parsed.data.headers)) console.log("Reason: parsed.data.headers is not an array or is missing. Value:", parsed.data.headers);
+                 //    if (!Array.isArray(parsed.data.rows)) console.log("Reason: parsed.data.rows is not an array or is missing. Value:", parsed.data.rows);
+                 //  }
                 }
               } catch (e) {
                 // This catch block will now handle failures from parsing 'potentialJson'
                 // If it wasn't a valid JSON (fenced or not), it will fall through to Markdown rendering.
-                console.log("Failed to parse as JSON, will render as Markdown. Error:", e.message);
-                console.log("Content that failed parsing:", potentialJson);
+                // console.log("Failed to parse as JSON, will render as Markdown. Error:", e.message);
+                // console.log("Content that failed parsing:", potentialJson);
               }
             }
           }
         }
         if (!isJsonTable) {
-          if (msg.role === "assistant" && contentStr) { // Only log if it was an assistant message we tried to parse
-            console.log("Rendered as Markdown.");
-          }
+          // if (msg.role === "assistant" && contentStr) { // Only log if it was an assistant message we tried to parse
+          //   console.log("Rendered as Markdown.");
+          // }
           contentToRender = <ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeMathjax]}>{Array.isArray(msg.content) ? msg.content[0]?.text : msg.content}</ReactMarkdown>;
         }
         return (
@@ -191,9 +187,9 @@ function ChatHistory({ messages = [], onDeleteMessage, isThinking, thinkingDots 
       <div ref={bottomRef} />
     </div>
   );
-}
+});
 
-function ChatInput({ value, onChange, onSend }) {
+const ChatInput = React.memo(function ChatInput({ value, onChange, onSend }) {
   return (
     <div className="chat-input">
       <input
@@ -207,10 +203,10 @@ function ChatInput({ value, onChange, onSend }) {
       </button>
     </div>
   );
-}
+});
 
 // TODO: リファクタリングする
-function YouTubePanel({ videoId }) { 
+const YouTubePanel = React.memo(function YouTubePanel({ videoId }) { 
   if (!videoId) {
     return <div className="youtube-panel-placeholder">YouTube動画プレーヤー</div>;
   }
@@ -229,10 +225,10 @@ function YouTubePanel({ videoId }) {
       />
     </div>
   );
-}
+});
 
 // TODO: リファクタリングする
-function TranscriptPanel({ text, currentTime, isLoading, error }) { // ★ MODIFIED: Added isLoading, error props
+const TranscriptPanel = React.memo(function TranscriptPanel({ text, currentTime, isLoading, error }) { // ★ MODIFIED: Added isLoading, error props
   const transcriptLines = useMemo(() => (Array.isArray(text) ? text : []), [text]);
   // const currentLineRef = useRef(null); // REMOVED: This ref was for the old single-block structure
 
@@ -303,7 +299,7 @@ function TranscriptPanel({ text, currentTime, isLoading, error }) { // ★ MODIF
       )}
     </div>
   );
-}
+});
 
 // テスト動画の初期値
 const TEST_VIDEO_ID = "iRJvKaCGPl0";
@@ -365,7 +361,6 @@ export default function ChatApp() {
       const deltaX = initialMouseXRef.current - e.clientX;
       let newWidthPercent = initialWidthRef.current + (deltaX / containerRect.width) * 100;
       newWidthPercent = Math.max(minPercent, Math.min(maxPercent, newWidthPercent));
-      console.log(`Calculated newWidthPercent: ${newWidthPercent}`); // デバッグログ追加
       setRightColumnWidth(newWidthPercent);
     };
     const handleMouseUp = () => {
@@ -565,7 +560,7 @@ export default function ChatApp() {
   }, []);
 
   // メッセージ送信
-  const handleSend = async () => {
+  const handleSend = useCallback(async () => { // ★ MODIFIED: Wrapped with useCallback
     if (!input) return;
     const newMsg = { role: "user", content: input };
     setMessages(msgs => [...msgs, newMsg]);
@@ -589,10 +584,10 @@ export default function ChatApp() {
     // }
     // setCurrentVideoTime(0);
     // setVideoTitle(data.videoTitle || '');
-  };
+  }, [input, setMessages, setInput, setIsThinking]); // ★ MODIFIED: Added dependencies
 
   // メッセージ削除処理
-  const handleDeleteMessage = async (userMessageIndex) => {
+  const handleDeleteMessage = useCallback(async (userMessageIndex) => { // ★ MODIFIED: Wrapped with useCallback
     const originalMessages = [...messages]; // Store original messages for potential rollback
     // const userMessageToDelete = messages[userMessageIndex]; // Not strictly needed if we use userMessageIndex directly
 
@@ -629,7 +624,7 @@ export default function ChatApp() {
       setMessages(originalMessages); // Rollback on network error or other exceptions
       setMessages(prevMessages => [...prevMessages, {role: 'system', content: `Error: Could not delete message. ${error.message}`}]);
     }
-  };
+  }, [messages, setMessages]); // ★ MODIFIED: Added dependencies
 
   return (
     <> {/* ★ Fragment を使用してヘッダーとメインコンテンツをラップ */}
