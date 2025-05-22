@@ -17,7 +17,8 @@ import base64
 # +++ END ADDED FOR IMAGE ILLUSTRATION +++
 
 CHAT_HISTORY_FILE = "chat_history.json"
-SAVE_RESPONSES_SCRIPT_PATH = "c:\\\\work\\\\ollama\\\\save_responses_to_chroma.py" # ★ 追加: スクリプトパス
+SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+SAVE_RESPONSES_SCRIPT_PATH = os.path.join(SCRIPT_DIR, "save_responses_to_chroma.py")
 
 # Load environment variables from .env file
 load_dotenv()
